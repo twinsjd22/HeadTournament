@@ -22,7 +22,9 @@ def remove_object(o):
 
 
 def update():
-    pass
+    for layer in world:
+        for o in layer:
+            o.update()
 
 
 def render():
