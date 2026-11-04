@@ -5,7 +5,7 @@ world = [[], []]
 
 
 def add_object(o, depth=0):
-    pass
+    world[depth].append(o)
 
 
 def add_objects(ol, depth=0):
