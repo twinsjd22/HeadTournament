@@ -28,4 +28,6 @@ def update():
 
 
 def render():
-    pass
+    for layer in world:
+        for o in layer:
+            o.draw()
