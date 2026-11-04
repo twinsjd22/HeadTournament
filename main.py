@@ -25,7 +25,8 @@ def update_world():
 
 
 def render_world():
-    pass
+    clear_canvas()
+    update_canvas()
 
 
 open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
