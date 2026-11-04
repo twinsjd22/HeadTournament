@@ -1,5 +1,7 @@
 from pico2d import *
 
+import game_world
+
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
 
@@ -21,7 +23,7 @@ def reset_world():
 
 
 def update_world():
-    pass
+    game_world.update()
 
 
 def render_world():
