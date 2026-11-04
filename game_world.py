@@ -13,7 +13,12 @@ def add_objects(ol, depth=0):
 
 
 def remove_object(o):
-    pass
+    for layer in world:
+        if o in layer:
+            layer.remove(o)
+            return
+
+    raise ValueError('Cannot delete non existing object')
 
 
 def update():
