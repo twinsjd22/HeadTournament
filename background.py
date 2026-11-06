@@ -2,8 +2,11 @@ from pico2d import load_image
 
 
 class Background:
+    image = None
+
     def __init__(self):
-        pass
+        if Background.image == None:
+            Background.image = load_image('resource/background.png')
 
     def update(self):
         pass
