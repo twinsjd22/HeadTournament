@@ -12,4 +12,4 @@ class Ground:
         pass
 
     def draw(self):
-        pass
+        Ground.image.draw(640, 40)
