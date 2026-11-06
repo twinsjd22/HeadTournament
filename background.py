@@ -12,4 +12,4 @@ class Background:
         pass
 
     def draw(self):
-        pass
+        Background.image.draw(640, 360)
