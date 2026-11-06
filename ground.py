@@ -2,8 +2,11 @@ from pico2d import load_image
 
 
 class Ground:
+    image = None
+
     def __init__(self):
-        pass
+        if Ground.image == None:
+            Ground.image = load_image('resource/ground.png')
 
     def update(self):
         pass
