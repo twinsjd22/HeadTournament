@@ -37,3 +37,5 @@ class Character:
     def draw(self):
         if self.state == 'IDLE':
             Character.image.clip_draw(self.frame * 256, 7 * 256, 256, 256, self.x, self.y, 160, 160)
+        elif self.state == 'RUN':
+            Character.image.clip_draw(self.frame * 256, 6 * 256, 256, 256, self.x, self.y, 160, 160)
