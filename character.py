@@ -54,7 +54,8 @@ class Character:
             self.x += self.dir * 10
 
     def draw(self):
+        flip = '' if self.face_dir == 1 else 'h'
         if self.state == 'IDLE':
-            Character.image.clip_draw(self.frame * 256, 7 * 256, 256, 256, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(self.frame * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'RUN':
-            Character.image.clip_draw(self.frame * 256, 6 * 256, 256, 256, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(self.frame * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
