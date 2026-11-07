@@ -15,8 +15,13 @@ class Character:
         self.machine = Machine(
             model=self,
             states=['IDLE', 'RUN'],
+            transitions=[
+                {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
+                {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
+            ],
             initial='IDLE',
             auto_transitions=False,
+            ignore_invalid_triggers=True,
         )
 
     def handle_event(self, event):
