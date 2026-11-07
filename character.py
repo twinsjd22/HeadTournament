@@ -14,4 +14,4 @@ class Character:
         pass
 
     def draw(self):
-        pass
+        Character.image.clip_draw(self.frame * 256, 7 * 256, 256, 256, self.x, self.y, 160, 160)
