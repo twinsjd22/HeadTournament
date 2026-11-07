@@ -3,6 +3,7 @@ from pico2d import *
 import game_world
 from background import Background
 from ground import Ground
+from character import Character
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
@@ -28,6 +29,9 @@ def reset_world():
 
     ground = Ground()
     game_world.add_object(ground, 0)
+
+    player = Character()
+    game_world.add_object(player, 1)
 
 
 def update_world():
