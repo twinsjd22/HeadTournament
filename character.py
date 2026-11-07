@@ -43,6 +43,7 @@ class Character:
         if self.dir == 0:
             self.move_stop()
         else:
+            self.face_dir = self.dir
             self.move_start()
 
     def update(self):
