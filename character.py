@@ -1,4 +1,5 @@
 from pico2d import load_image
+from transitions import Machine
 
 
 class Character:
@@ -9,6 +10,14 @@ class Character:
         self.frame = 0
         if Character.image == None:
             Character.image = load_image('resource/sheet_defender.png')
+
+        # 현재 캐릭터는 IDLE 상태 하나만 갖는다.
+        self.machine = Machine(
+            model=self,
+            states=['IDLE'],
+            initial='IDLE',
+            auto_transitions=False,
+        )
 
     def update(self):
         self.frame = (self.frame + 1) % 4
