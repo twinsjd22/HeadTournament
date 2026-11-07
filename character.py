@@ -1,4 +1,4 @@
-from pico2d import load_image
+from pico2d import load_image, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT
 from transitions import Machine
 
 
@@ -25,7 +25,10 @@ class Character:
         )
 
     def handle_event(self, event):
-        pass
+        if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
+            self.move_start()
+        elif event.type == SDL_KEYUP and event.key in (SDLK_LEFT, SDLK_RIGHT):
+            self.move_stop()
 
     def update(self):
         if self.state == 'IDLE':
