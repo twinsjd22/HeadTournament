@@ -31,13 +31,18 @@ class Character:
                 self.dir += 1
             elif event.key == SDLK_LEFT:
                 self.dir -= 1
-            self.move_start()
         elif event.type == SDL_KEYUP and event.key in (SDLK_LEFT, SDLK_RIGHT):
             if event.key == SDLK_RIGHT:
                 self.dir -= 1
             elif event.key == SDLK_LEFT:
                 self.dir += 1
+        else:
+            return
+
+        if self.dir == 0:
             self.move_stop()
+        else:
+            self.move_start()
 
     def update(self):
         if self.state == 'IDLE':
