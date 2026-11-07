@@ -27,8 +27,16 @@ class Character:
 
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
+            if event.key == SDLK_RIGHT:
+                self.dir += 1
+            elif event.key == SDLK_LEFT:
+                self.dir -= 1
             self.move_start()
         elif event.type == SDL_KEYUP and event.key in (SDLK_LEFT, SDLK_RIGHT):
+            if event.key == SDLK_RIGHT:
+                self.dir -= 1
+            elif event.key == SDLK_LEFT:
+                self.dir += 1
             self.move_stop()
 
     def update(self):
