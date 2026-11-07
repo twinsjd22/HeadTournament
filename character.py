@@ -19,6 +19,9 @@ class Character:
             auto_transitions=False,
         )
 
+    def handle_event(self, event):
+        pass
+
     def update(self):
         if self.state == 'IDLE':
             self.frame = (self.frame + 1) % 4
