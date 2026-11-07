@@ -20,7 +20,8 @@ class Character:
         )
 
     def update(self):
-        self.frame = (self.frame + 1) % 4
+        if self.state == 'IDLE':
+            self.frame = (self.frame + 1) % 4
 
     def draw(self):
         Character.image.clip_draw(self.frame * 256, 7 * 256, 256, 256, self.x, self.y, 160, 160)
