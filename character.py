@@ -33,6 +33,8 @@ class Character:
     def update(self):
         if self.state == 'IDLE':
             self.frame = (self.frame + 1) % 4
+        elif self.state == 'RUN':
+            self.frame = (self.frame + 1) % 6
 
     def draw(self):
         if self.state == 'IDLE':
