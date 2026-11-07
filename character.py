@@ -49,6 +49,7 @@ class Character:
             self.frame = (self.frame + 1) % 4
         elif self.state == 'RUN':
             self.frame = (self.frame + 1) % 6
+            self.x += self.dir * 10
 
     def draw(self):
         if self.state == 'IDLE':
