@@ -20,6 +20,8 @@ class Character:
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
+                {'trigger': 'jump', 'source': ['IDLE', 'RUN'], 'dest': 'JUMP'},
+                {'trigger': 'land', 'source': 'JUMP', 'dest': 'IDLE'},
             ],
             initial='IDLE',
             auto_transitions=False,
