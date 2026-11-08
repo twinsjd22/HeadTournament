@@ -69,6 +69,14 @@ class Character:
             self.x = clamp(50, self.x, 1280 - 50)
             self.y += self.vy
             self.vy -= 5
+            if self.vy > 20:
+                self.frame = 1
+            elif self.vy > 5:
+                self.frame = 2
+            elif self.vy > -10:
+                self.frame = 3
+            else:
+                self.frame = 4
             if self.y <= 160:
                 self.y = 160
                 self.land()
