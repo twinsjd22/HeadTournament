@@ -67,6 +67,9 @@ class Character:
         elif self.state == 'JUMP':
             self.y += self.vy
             self.vy -= 5
+            if self.y <= 160:
+                self.y = 160
+                self.land()
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
