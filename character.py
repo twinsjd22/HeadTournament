@@ -65,6 +65,8 @@ class Character:
             self.x += self.dir * 10
             self.x = clamp(50, self.x, 1280 - 50)
         elif self.state == 'JUMP':
+            self.x += self.dir * 10
+            self.x = clamp(50, self.x, 1280 - 50)
             self.y += self.vy
             self.vy -= 5
             if self.y <= 160:
