@@ -13,10 +13,10 @@ class Character:
         if Character.image == None:
             Character.image = load_image('resource/sheet_defender.png')
 
-        # 현재 캐릭터는 IDLE, RUN 상태를 갖는다.
+        # 현재 캐릭터는 IDLE, RUN, JUMP 상태를 갖는다.
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN'],
+            states=['IDLE', 'RUN', 'JUMP'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
