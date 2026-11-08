@@ -1,4 +1,4 @@
-from pico2d import load_image, clamp, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT
+from pico2d import load_image, clamp, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP
 from transitions import Machine
 
 
@@ -29,6 +29,10 @@ class Character:
         )
 
     def handle_event(self, event):
+        if event.type == SDL_KEYDOWN and event.key == SDLK_UP:
+            self.jump()
+            return
+
         if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
             if event.key == SDLK_RIGHT:
                 self.dir += 1
