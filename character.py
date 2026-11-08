@@ -29,6 +29,9 @@ class Character:
             ignore_invalid_triggers=True,
         )
 
+    def on_enter_IDLE(self):
+        self.frame = 0
+
     def on_enter_JUMP(self):
         self.frame = 0
         self.vy = 40
