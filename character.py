@@ -72,6 +72,8 @@ class Character:
             if self.y <= 160:
                 self.y = 160
                 self.land()
+                if self.dir != 0:
+                    self.move_start()
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
