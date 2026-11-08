@@ -1,4 +1,5 @@
 from pico2d import *
+import pico2d.pico2d as pico2d_core
 
 import game_world
 from background import Background
@@ -48,6 +49,7 @@ def render_world():
 
 
 open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
+SDL_SetWindowFullscreen(pico2d_core.window, SDL_WINDOW_FULLSCREEN_DESKTOP)
 reset_world()
 
 while running:
