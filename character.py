@@ -10,6 +10,7 @@ class Character:
         self.frame = 0
         self.dir = 0
         self.face_dir = 1
+        self.vy = 0
         if Character.image == None:
             Character.image = load_image('resource/sheet_defender.png')
 
