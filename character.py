@@ -64,6 +64,9 @@ class Character:
             self.frame = (self.frame + 1) % 6
             self.x += self.dir * 10
             self.x = clamp(50, self.x, 1280 - 50)
+        elif self.state == 'JUMP':
+            self.y += self.vy
+            self.vy -= 5
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
