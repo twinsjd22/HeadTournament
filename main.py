@@ -50,6 +50,7 @@ def render_world():
 
 open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
 SDL_SetWindowFullscreen(pico2d_core.window, SDL_WINDOW_FULLSCREEN_DESKTOP)
+SDL_RenderSetLogicalSize(pico2d_core.renderer, SCREEN_WIDTH, SCREEN_HEIGHT)
 reset_world()
 
 while running:
