@@ -12,7 +12,9 @@ class Ball:
             Ball.image = load_image('resource/ball_sheet.png')
 
     def update(self):
-        pass
+        self.x += self.vx
+        self.y += self.vy
+        self.vy -= 3
 
     def draw(self):
         Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
