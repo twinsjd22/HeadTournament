@@ -34,5 +34,10 @@ class Ball:
             self.x = 1280 - 32
             self.vx = -self.vx * 0.7
 
+        if self.vx > 0:
+            self.frame = (self.frame + 1) % 8
+        elif self.vx < 0:
+            self.frame = (self.frame - 1) % 8
+
     def draw(self):
         Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
