@@ -5,6 +5,7 @@ import game_world
 from background import Background
 from ground import Ground
 from character import Character
+from ball import Ball
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
@@ -36,6 +37,9 @@ def reset_world():
 
     player = Character()
     game_world.add_object(player, 1)
+
+    ball = Ball()
+    game_world.add_object(ball, 1)
 
 
 def update_world():
