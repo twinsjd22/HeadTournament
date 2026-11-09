@@ -14,4 +14,4 @@ class Ball:
         pass
 
     def draw(self):
-        pass
+        Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
