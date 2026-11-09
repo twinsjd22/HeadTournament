@@ -22,5 +22,12 @@ class Ball:
             if self.vy < 15:
                 self.vy = 0
 
+        if self.x - 32 < 0:
+            self.x = 32
+            self.vx = -self.vx * 0.7
+        elif self.x + 32 > 1280:
+            self.x = 1280 - 32
+            self.vx = -self.vx * 0.7
+
     def draw(self):
         Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
