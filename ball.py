@@ -22,6 +22,11 @@ class Ball:
             if self.vy < 15:
                 self.vy = 0
 
+        if self.y == 80 + 32:
+            self.vx *= 0.95
+            if abs(self.vx) < 0.5:
+                self.vx = 0
+
         if self.x - 32 < 0:
             self.x = 32
             self.vx = -self.vx * 0.7
