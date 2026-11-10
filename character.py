@@ -1,4 +1,4 @@
-from pico2d import load_image, clamp, draw_circle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP
+from pico2d import load_image, clamp, draw_circle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE
 from transitions import Machine
 
 
@@ -44,6 +44,10 @@ class Character:
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key == SDLK_UP:
             self.jump()
+            return
+
+        if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
+            self.kick()
             return
 
         if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
