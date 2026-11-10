@@ -98,6 +98,8 @@ class Character:
             self.frame += 1
             if self.frame == 5:
                 self.kick_end()
+                if self.dir != 0:
+                    self.move_start()
 
     def get_head(self):
         if self.state == 'RUN':
