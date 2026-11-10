@@ -94,6 +94,10 @@ class Character:
                 self.land()
                 if self.dir != 0:
                     self.move_start()
+        elif self.state == 'KICK':
+            self.frame += 1
+            if self.frame == 5:
+                self.kick_end()
 
     def get_head(self):
         if self.state == 'RUN':
