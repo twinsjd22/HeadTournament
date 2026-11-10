@@ -86,6 +86,9 @@ class Character:
                 if self.dir != 0:
                     self.move_start()
 
+    def get_head(self):
+        return self.x, self.y + 39, 30
+
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
         if self.state == 'IDLE':
