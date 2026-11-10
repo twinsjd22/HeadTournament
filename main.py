@@ -53,7 +53,7 @@ def update_world():
     game_world.update()
 
     if collide_circle(player.get_head(), ball.get_circle()):
-        print('head hit')
+        ball.bounce_from(*player.get_head())
 
 
 def render_world():
