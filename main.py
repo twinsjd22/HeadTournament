@@ -26,6 +26,7 @@ def handle_events():
 def reset_world():
     global running
     global player
+    global ball
 
     running = True
 
@@ -42,8 +43,17 @@ def reset_world():
     game_world.add_object(ball, 1)
 
 
+def collide_circle(a, b):
+    ax, ay, ar = a
+    bx, by, br = b
+    return (ax - bx) ** 2 + (ay - by) ** 2 < (ar + br) ** 2
+
+
 def update_world():
     game_world.update()
+
+    if collide_circle(player.get_head(), ball.get_circle()):
+        print('head hit')
 
 
 def render_world():
