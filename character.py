@@ -23,6 +23,8 @@ class Character:
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
                 {'trigger': 'jump', 'source': ['IDLE', 'RUN'], 'dest': 'JUMP'},
                 {'trigger': 'land', 'source': 'JUMP', 'dest': 'IDLE'},
+                {'trigger': 'kick', 'source': ['IDLE', 'RUN'], 'dest': 'KICK'},
+                {'trigger': 'kick_end', 'source': 'KICK', 'dest': 'IDLE'},
             ],
             initial='IDLE',
             auto_transitions=False,
