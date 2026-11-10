@@ -87,7 +87,9 @@ class Character:
                     self.move_start()
 
     def get_head(self):
-        return self.x, self.y + 39, 30
+        if self.state == 'RUN':
+            return self.x + self.face_dir * 16, self.y + 39, 30
+        return self.x + self.face_dir * 2, self.y + 39, 30
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
