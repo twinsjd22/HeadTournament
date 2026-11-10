@@ -54,5 +54,9 @@ class Ball:
         speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * 0.8, 20)
         self.vx, self.vy = nx * speed, ny * speed
 
+    def kicked(self, face_dir):
+        self.vx = face_dir * 30
+        self.vy = 25
+
     def draw(self):
         Ball.image.clip_draw(int(self.frame) * 64, 0, 64, 64, self.x, self.y)
