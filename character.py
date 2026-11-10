@@ -101,4 +101,6 @@ class Character:
             Character.image.clip_composite_draw(self.frame * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'JUMP':
             Character.image.clip_composite_draw(self.frame * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+        elif self.state == 'KICK':
+            Character.image.clip_composite_draw(self.frame * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
