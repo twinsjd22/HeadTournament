@@ -38,6 +38,9 @@ class Character:
         self.frame = 0
         self.vy = 40
 
+    def on_enter_KICK(self):
+        self.frame = 0
+
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key == SDLK_UP:
             self.jump()
