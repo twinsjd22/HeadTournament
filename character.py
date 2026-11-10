@@ -106,6 +106,9 @@ class Character:
             return self.x + self.face_dir * 16, self.y + 39, 30
         return self.x + self.face_dir * 2, self.y + 39, 30
 
+    def get_foot(self):
+        return self.x + self.face_dir * 37, self.y - 22, 20
+
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
         if self.state == 'IDLE':
