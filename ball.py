@@ -1,3 +1,5 @@
+import math
+
 from pico2d import load_image
 
 
@@ -41,6 +43,19 @@ class Ball:
 
     def get_circle(self):
         return self.x, self.y, 32
+
+    def bounce_from(self, cx, cy, r):
+        dx, dy = self.x - cx, self.y - cy
+        d = math.sqrt(dx * dx + dy * dy)
+        if d == 0:
+            dx, dy, d = 0, 1, 1
+        nx, ny = dx / d, dy / d
+
+        self.x = cx + nx * (r + 32)
+        self.y = cy + ny * (r + 32)
+
+        speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * 0.8, 20)
+        self.vx, self.vy = nx * speed, ny * speed
 
     def draw(self):
         Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
