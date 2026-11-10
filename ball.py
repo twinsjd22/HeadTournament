@@ -36,10 +36,7 @@ class Ball:
             self.x = 1280 - 32
             self.vx = -self.vx * 0.7
 
-        if self.vx > 0:
-            self.frame = (self.frame + 1) % 8
-        elif self.vx < 0:
-            self.frame = (self.frame - 1) % 8
+        self.frame = (self.frame + self.vx / 25) % 8
 
     def get_circle(self):
         return self.x, self.y, 32
@@ -58,4 +55,4 @@ class Ball:
         self.vx, self.vy = nx * speed, ny * speed
 
     def draw(self):
-        Ball.image.clip_draw(self.frame * 64, 0, 64, 64, self.x, self.y)
+        Ball.image.clip_draw(int(self.frame) * 64, 0, 64, 64, self.x, self.y)
