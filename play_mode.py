@@ -39,7 +39,17 @@ def finish():
 
 
 def update():
-    pass
+    game_world.update()
+
+    if collide_circle(player.get_head(), ball.get_circle()):
+        ball.bounce_from(*player.get_head())
+
+    if player.state == 'KICK' and 2 <= player.frame <= 4:
+        if collide_circle(player.get_foot(), ball.get_circle()):
+            ball.kicked(player.face_dir)
+
+    # frame_time 적용 전까지 프레임 속도를 맞추기 위한 대기
+    delay(0.05)
 
 
 def draw():
