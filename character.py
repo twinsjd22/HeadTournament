@@ -26,6 +26,9 @@ STRIDE_LENGTH_M = 0.8
 RUN_FRAMES_PER_STRIDE = 6
 RUN_FRAMES_PER_SECOND = RUN_SPEED_MPS / STRIDE_LENGTH_M * RUN_FRAMES_PER_STRIDE
 
+# 킥 애니메이션 (지금 속도와 같게)
+KICK_FRAMES_PER_SECOND = 17.0
+
 
 class Character:
     image = None
@@ -120,8 +123,8 @@ class Character:
                 if self.dir != 0:
                     self.move_start()
         elif self.state == 'KICK':
-            self.frame += 1
-            if self.frame == 5:
+            self.frame += KICK_FRAMES_PER_SECOND * game_framework.frame_time
+            if self.frame >= 5:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
