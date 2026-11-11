@@ -12,6 +12,12 @@ RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
 RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
 RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 
+# 점프 속도와 중력 (경쾌한 점프를 위해 실제 중력의 2배)
+JUMP_SPEED_MPS = 9.0
+JUMP_SPEED_PPS = (JUMP_SPEED_MPS * PIXEL_PER_METER)
+GRAVITY_MPS2 = 9.8 * 2
+GRAVITY_PPS2 = (GRAVITY_MPS2 * PIXEL_PER_METER)
+
 
 class Character:
     image = None
@@ -47,7 +53,7 @@ class Character:
 
     def on_enter_JUMP(self):
         self.frame = 0
-        self.vy = 40
+        self.vy = JUMP_SPEED_PPS
 
     def on_enter_KICK(self):
         self.frame = 0
@@ -90,13 +96,13 @@ class Character:
         elif self.state == 'JUMP':
             self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
-            self.y += self.vy
-            self.vy -= 5
-            if self.vy > 20:
+            self.y += self.vy * game_framework.frame_time
+            self.vy -= GRAVITY_PPS2 * game_framework.frame_time
+            if self.vy > JUMP_SPEED_PPS * 0.5:
                 self.frame = 1
-            elif self.vy > 5:
+            elif self.vy > JUMP_SPEED_PPS * 0.125:
                 self.frame = 2
-            elif self.vy > -10:
+            elif self.vy > -JUMP_SPEED_PPS * 0.25:
                 self.frame = 3
             else:
                 self.frame = 4
