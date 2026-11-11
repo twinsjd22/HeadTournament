@@ -21,6 +21,11 @@ GRAVITY_PPS2 = (GRAVITY_MPS2 * PIXEL_PER_METER)
 # 애니메이션 속도 (1초에 넘기는 그림 칸 수, 지금 속도와 같게)
 IDLE_FRAMES_PER_SECOND = 17.0
 
+# 달리기 애니메이션: 보폭 하나에 run 줄 6칸
+STRIDE_LENGTH_M = 0.8
+RUN_FRAMES_PER_STRIDE = 6
+RUN_FRAMES_PER_SECOND = RUN_SPEED_MPS / STRIDE_LENGTH_M * RUN_FRAMES_PER_STRIDE
+
 
 class Character:
     image = None
@@ -93,7 +98,7 @@ class Character:
         if self.state == 'IDLE':
             self.frame = (self.frame + IDLE_FRAMES_PER_SECOND * game_framework.frame_time) % 4
         elif self.state == 'RUN':
-            self.frame = (self.frame + 1) % 6
+            self.frame = (self.frame + RUN_FRAMES_PER_SECOND * game_framework.frame_time) % 6
             self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
         elif self.state == 'JUMP':
