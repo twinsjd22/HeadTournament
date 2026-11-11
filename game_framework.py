@@ -15,7 +15,8 @@ def pop_mode():
 
 
 def quit():
-    pass
+    global running
+    running = False
 
 
 def run(start_mode):
