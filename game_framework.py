@@ -1,5 +1,8 @@
+import time
+
 running = None
 stack = None
+frame_time = 0.0
 
 
 def change_mode(mode):
@@ -45,10 +48,15 @@ def run(start_mode):
     stack = [start_mode]
     start_mode.init()
 
+    global frame_time
+    frame_time = 0.0
+    current_time = time.time()
     while running:
         stack[-1].handle_events()
         stack[-1].update()
         stack[-1].draw()
+        frame_time = time.time() - current_time
+        current_time += frame_time
 
     # 스택에 남아 있는 모드들을 위에서부터 차례로 종료하고 제거
     while (len(stack) > 0):
