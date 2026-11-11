@@ -3,7 +3,14 @@ stack = None
 
 
 def change_mode(mode):
-    pass
+    global stack
+    if (len(stack) > 0):
+        # 현재 모드의 finish 호출
+        stack[-1].finish()
+        # 현재 모드 제거
+        stack.pop()
+    stack.append(mode)
+    mode.init()
 
 
 def push_mode(mode):
