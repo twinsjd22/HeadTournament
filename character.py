@@ -18,6 +18,9 @@ JUMP_SPEED_PPS = (JUMP_SPEED_MPS * PIXEL_PER_METER)
 GRAVITY_MPS2 = 9.8 * 2
 GRAVITY_PPS2 = (GRAVITY_MPS2 * PIXEL_PER_METER)
 
+# 애니메이션 속도 (1초에 넘기는 그림 칸 수, 지금 속도와 같게)
+IDLE_FRAMES_PER_SECOND = 17.0
+
 
 class Character:
     image = None
@@ -88,7 +91,7 @@ class Character:
 
     def update(self):
         if self.state == 'IDLE':
-            self.frame = (self.frame + 1) % 4
+            self.frame = (self.frame + IDLE_FRAMES_PER_SECOND * game_framework.frame_time) % 4
         elif self.state == 'RUN':
             self.frame = (self.frame + 1) % 6
             self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
@@ -129,13 +132,13 @@ class Character:
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
         if self.state == 'IDLE':
-            Character.image.clip_composite_draw(self.frame * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(int(self.frame) * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'RUN':
-            Character.image.clip_composite_draw(self.frame * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(int(self.frame) * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'JUMP':
-            Character.image.clip_composite_draw(self.frame * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'KICK':
-            Character.image.clip_composite_draw(self.frame * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            Character.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
         if self.state == 'KICK':
             draw_circle(*self.get_foot(), 255, 0, 0)
