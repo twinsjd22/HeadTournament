@@ -1,6 +1,17 @@
 from pico2d import load_image, clamp, draw_circle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE
 from transitions import Machine
 
+import game_framework
+
+# 선수 그림 높이 150px = 키 1.75m
+PIXEL_PER_METER = (150.0 / 1.75)
+
+# 달리기 속도
+RUN_SPEED_KMPH = 8.0
+RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
+RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
+RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
+
 
 class Character:
     image = None
@@ -74,10 +85,10 @@ class Character:
             self.frame = (self.frame + 1) % 4
         elif self.state == 'RUN':
             self.frame = (self.frame + 1) % 6
-            self.x += self.dir * 10
+            self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
         elif self.state == 'JUMP':
-            self.x += self.dir * 10
+            self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
             self.y += self.vy
             self.vy -= 5
