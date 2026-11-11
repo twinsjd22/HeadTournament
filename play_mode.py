@@ -18,7 +18,20 @@ def collide_circle(a, b):
 
 
 def init():
-    pass
+    global player
+    global ball
+
+    background = Background()
+    game_world.add_object(background, 0)
+
+    ground = Ground()
+    game_world.add_object(ground, 0)
+
+    player = Character()
+    game_world.add_object(player, 1)
+
+    ball = Ball()
+    game_world.add_object(ball, 1)
 
 
 def finish():
