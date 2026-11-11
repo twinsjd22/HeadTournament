@@ -22,7 +22,16 @@ def push_mode(mode):
 
 
 def pop_mode():
-    pass
+    global stack
+    if (len(stack) > 0):
+        # 현재 모드의 finish 호출
+        stack[-1].finish()
+        # 현재 모드 제거
+        stack.pop()
+
+    # 이전 모드의 resume 호출
+    if (len(stack) > 0):
+        stack[-1].resume()
 
 
 def quit():
