@@ -20,4 +20,17 @@ def quit():
 
 
 def run(start_mode):
-    pass
+    global running, stack
+    running = True
+    stack = [start_mode]
+    start_mode.init()
+
+    while running:
+        stack[-1].handle_events()
+        stack[-1].update()
+        stack[-1].draw()
+
+    # 스택에 남아 있는 모드들을 위에서부터 차례로 종료하고 제거
+    while (len(stack) > 0):
+        stack[-1].finish()
+        stack.pop()
