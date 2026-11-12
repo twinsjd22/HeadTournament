@@ -6,6 +6,7 @@ from background import Background
 from ground import Ground
 from character import Character
 from ball import Ball
+from hit_effect import HitEffect
 
 player = None
 ball = None
@@ -43,6 +44,9 @@ def update():
 
     if collide_circle(player.get_head(), ball.get_circle()):
         ball.bounce_from(*player.get_head())
+        # 머리와 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
+        head_x, head_y, head_r = player.get_head()
+        game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
 
     if player.state == 'KICK' and 2 <= int(player.frame) <= 4:
         if collide_circle(player.get_foot(), ball.get_circle()):
