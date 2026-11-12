@@ -23,6 +23,13 @@ class Goal:
         else:
             return 1280 - 78, 288, 1280 - 3, 300
 
+    def is_ball_in(self, x, y, r):
+        # 공 전체가 골라인(앞 기둥)을 넘어가고, 크로스바보다 아래에 있으면 골
+        if self.side == 'left':
+            return x + r < 75 and y < 288
+        else:
+            return x - r > 1280 - 75 and y < 288
+
     def draw(self):
         # 이미지 바깥쪽 끝을 화면 끝에, 아래쪽 끝을 바닥 윗면(y=80)에 맞춤
         if self.side == 'left':
