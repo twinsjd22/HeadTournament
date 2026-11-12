@@ -39,6 +39,8 @@ class Character:
         self.dir = 0
         self.face_dir = 1
         self.vy = 0
+        # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
+        self.kick_hit = False
         if Character.image == None:
             Character.image = load_image('resource/sheet_defender.png')
 
@@ -68,6 +70,7 @@ class Character:
 
     def on_enter_KICK(self):
         self.frame = 0
+        self.kick_hit = False
 
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key == SDLK_UP:

@@ -48,9 +48,10 @@ def update():
         head_x, head_y, head_r = player.get_head()
         game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
 
-    if player.state == 'KICK' and 2 <= int(player.frame) <= 4:
+    if player.state == 'KICK' and 2 <= int(player.frame) <= 4 and not player.kick_hit:
         if collide_circle(player.get_foot(), ball.get_circle()):
             ball.kicked(player.face_dir)
+            player.kick_hit = True
 
 
 def draw():
