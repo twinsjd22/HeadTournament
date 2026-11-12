@@ -19,6 +19,9 @@ BOUNCE_STOP_SPEED_PPS = (BOUNCE_STOP_SPEED_MPS * PIXEL_PER_METER)
 ROLL_STOP_SPEED_MPS = 0.1
 ROLL_STOP_SPEED_PPS = (ROLL_STOP_SPEED_MPS * PIXEL_PER_METER)
 
+# 바닥에서 굴러갈 때 1초 동안 남는 속도의 비율 (지금 마찰과 같게)
+ROLL_SPEED_KEEP_PER_SECOND = 0.4
+
 # 헤딩으로 튕겨 나가는 최소 속도
 HEADING_MIN_SPEED_MPS = 4.0
 HEADING_MIN_SPEED_PPS = (HEADING_MIN_SPEED_MPS * PIXEL_PER_METER)
@@ -55,7 +58,7 @@ class Ball:
                 self.vy = 0
 
         if self.y == 80 + 32:
-            self.vx *= 0.95
+            self.vx *= ROLL_SPEED_KEEP_PER_SECOND ** game_framework.frame_time
             if abs(self.vx) < ROLL_STOP_SPEED_PPS:
                 self.vx = 0
 
