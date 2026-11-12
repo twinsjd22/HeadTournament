@@ -13,6 +13,9 @@ player = None
 ball = None
 goal_left = None
 goal_right = None
+# 점수: 왼쪽 팀(플레이어), 오른쪽 팀(상대)
+score_left = 0
+score_right = 0
 
 
 def collide_circle(a, b):
@@ -35,6 +38,10 @@ def init():
     global ball
     global goal_left
     global goal_right
+    global score_left
+    global score_right
+
+    score_left, score_right = 0, 0
 
     background = Background()
     game_world.add_object(background, 0)
@@ -61,6 +68,9 @@ def finish():
 
 
 def update():
+    global score_left
+    global score_right
+
     game_world.update()
 
     if collide_circle(player.get_head(), ball.get_circle()):
@@ -85,7 +95,12 @@ def update():
     # 공이 골대 안에 들어가면 골 (확인용 출력 후 공을 처음 자리로)
     for goal in (goal_left, goal_right):
         if goal.is_ball_in(*ball.get_circle()):
-            print(f'골! ({goal.side} 골대)')
+            # 왼쪽 골대에 들어가면 오른쪽 팀, 오른쪽 골대에 들어가면 왼쪽 팀 득점
+            if goal.side == 'left':
+                score_right += 1
+            else:
+                score_left += 1
+            print(f'골! ({goal.side} 골대) {score_left} : {score_right}')
             ball.x, ball.y = 640, 400
             ball.vx, ball.vy = 0, 0
 
