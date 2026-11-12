@@ -6,6 +6,7 @@ from background import Background
 from ground import Ground
 from character import Character
 from ball import Ball
+from goal import Goal
 from hit_effect import HitEffect
 
 player = None
@@ -33,6 +34,13 @@ def init():
 
     ball = Ball()
     game_world.add_object(ball, 1)
+
+    # 골대는 공보다 나중에 그려서, 공이 골대 안으로 들어가는 것처럼 보이게 함
+    goal_left = Goal('left')
+    game_world.add_object(goal_left, 1)
+
+    goal_right = Goal('right')
+    game_world.add_object(goal_right, 1)
 
 
 def finish():
