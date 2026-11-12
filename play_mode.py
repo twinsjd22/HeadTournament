@@ -11,6 +11,8 @@ from hit_effect import HitEffect
 
 player = None
 ball = None
+goal_left = None
+goal_right = None
 
 
 def collide_circle(a, b):
@@ -19,9 +21,20 @@ def collide_circle(a, b):
     return (ax - bx) ** 2 + (ay - by) ** 2 < (ar + br) ** 2
 
 
+def collide_circle_box(c, bb):
+    cx, cy, r = c
+    left, bottom, right, top = bb
+    # 사각형 위에서 원 중심과 가장 가까운 점까지의 거리가 반지름보다 짧으면 충돌
+    px = clamp(left, cx, right)
+    py = clamp(bottom, cy, top)
+    return (cx - px) ** 2 + (cy - py) ** 2 < r ** 2
+
+
 def init():
     global player
     global ball
+    global goal_left
+    global goal_right
 
     background = Background()
     game_world.add_object(background, 0)
@@ -63,6 +76,11 @@ def update():
             # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
             foot_x, foot_y, foot_r = player.get_foot()
             game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
+
+    # 공이 크로스바에 맞으면 튕김
+    for goal in (goal_left, goal_right):
+        if collide_circle_box(ball.get_circle(), goal.get_bb()):
+            ball.bounce_from_box(*goal.get_bb())
 
 
 def draw():
