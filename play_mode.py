@@ -48,9 +48,6 @@ def update():
         if collide_circle(player.get_foot(), ball.get_circle()):
             ball.kicked(player.face_dir)
 
-    # frame_time 적용 전까지 프레임 속도를 맞추기 위한 대기
-    delay(0.05)
-
 
 def draw():
     clear_canvas()
