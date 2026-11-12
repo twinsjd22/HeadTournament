@@ -52,6 +52,9 @@ def update():
         if collide_circle(player.get_foot(), ball.get_circle()):
             ball.kicked(player.face_dir)
             player.kick_hit = True
+            # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
+            foot_x, foot_y, foot_r = player.get_foot()
+            game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
 
 
 def draw():
