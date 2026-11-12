@@ -1,4 +1,4 @@
-from pico2d import load_image
+from pico2d import load_image, draw_rectangle
 
 
 class Goal:
@@ -16,9 +16,17 @@ class Goal:
     def update(self):
         pass
 
+    def get_bb(self):
+        # 크로스바(골대 맨 위 가로대) 영역: 왼쪽, 아래, 오른쪽, 위
+        if self.side == 'left':
+            return 3, 288, 78, 300
+        else:
+            return 1280 - 78, 288, 1280 - 3, 300
+
     def draw(self):
         # 이미지 바깥쪽 끝을 화면 끝에, 아래쪽 끝을 바닥 윗면(y=80)에 맞춤
         if self.side == 'left':
             Goal.image_left.draw(170 // 2, 80 + 230 // 2)
         else:
             Goal.image_right.draw(1280 - 170 // 2, 80 + 230 // 2)
+        draw_rectangle(*self.get_bb())
