@@ -82,6 +82,13 @@ def update():
         if collide_circle_box(ball.get_circle(), goal.get_bb()):
             ball.bounce_from_box(*goal.get_bb())
 
+    # 공이 골대 안에 들어가면 골 (확인용 출력 후 공을 처음 자리로)
+    for goal in (goal_left, goal_right):
+        if goal.is_ball_in(*ball.get_circle()):
+            print(f'골! ({goal.side} 골대)')
+            ball.x, ball.y = 640, 400
+            ball.vx, ball.vy = 0, 0
+
 
 def draw():
     clear_canvas()
