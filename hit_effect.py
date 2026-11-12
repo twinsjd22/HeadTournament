@@ -14,4 +14,4 @@ class HitEffect:
         pass
 
     def draw(self):
-        pass
+        HitEffect.image.clip_draw(int(self.frame) * 128, 0, 128, 128, self.x, self.y)
