@@ -17,4 +17,8 @@ class Goal:
         pass
 
     def draw(self):
-        pass
+        # 이미지 바깥쪽 끝을 화면 끝에, 아래쪽 끝을 바닥 윗면(y=80)에 맞춤
+        if self.side == 'left':
+            Goal.image_left.draw(170 // 2, 80 + 230 // 2)
+        else:
+            Goal.image_right.draw(1280 - 170 // 2, 80 + 230 // 2)
