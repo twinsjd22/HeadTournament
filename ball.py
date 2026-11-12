@@ -1,6 +1,6 @@
 import math
 
-from pico2d import load_image
+from pico2d import load_image, clamp
 
 import game_framework
 
@@ -86,6 +86,26 @@ class Ball:
 
         speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * 0.8, HEADING_MIN_SPEED_PPS)
         self.vx, self.vy = nx * speed, ny * speed
+
+    def bounce_from_box(self, left, bottom, right, top):
+        # 사각형 위에서 공 중심과 가장 가까운 점
+        px = clamp(left, self.x, right)
+        py = clamp(bottom, self.y, top)
+        dx, dy = self.x - px, self.y - py
+        d = math.sqrt(dx * dx + dy * dy)
+        if d == 0:
+            dx, dy, d = 0, 1, 1
+        nx, ny = dx / d, dy / d
+
+        # 공을 사각형 바깥으로 밀어냄
+        self.x = px + nx * 32
+        self.y = py + ny * 32
+
+        # 사각형 쪽으로 오던 속도만 반대로 튕김 (벽처럼 0.7배)
+        vn = self.vx * nx + self.vy * ny
+        if vn < 0:
+            self.vx -= (1 + 0.7) * vn * nx
+            self.vy -= (1 + 0.7) * vn * ny
 
     def kicked(self, face_dir):
         self.vx = face_dir * KICK_SPEED_X_PPS
