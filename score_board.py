@@ -15,4 +15,5 @@ class ScoreBoard:
         pass
 
     def draw(self):
-        pass
+        # 화면 위쪽 가운데에 점수 패널
+        ScoreBoard.image.draw(640, 660)
