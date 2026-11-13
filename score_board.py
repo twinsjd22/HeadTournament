@@ -1,5 +1,7 @@
 from pico2d import load_image, load_font
 
+import play_mode
+
 
 class ScoreBoard:
     image = None
@@ -17,3 +19,5 @@ class ScoreBoard:
     def draw(self):
         # 화면 위쪽 가운데에 점수 패널
         ScoreBoard.image.draw(640, 660)
+        # 점수 글자 (폭 약 82px)를 패널 가운데에 오도록 왼쪽 끝을 41px 당김
+        ScoreBoard.font.draw(640 - 41, 662, f'{play_mode.score_left} : {play_mode.score_right}', (255, 255, 255))
