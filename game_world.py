@@ -1,7 +1,8 @@
-# layer 0: Background Objects
-# layer 1: Foreground Objects
+# 레이어 0: 배경 객체 (배경, 바닥)
+# 레이어 1: 앞쪽 객체 (선수, 공, 골대, 이펙트)
+# 레이어 2: UI (점수, 타이머)
 
-world = [[], []]
+world = [[], [], []]
 
 
 def add_object(o, depth=0):
