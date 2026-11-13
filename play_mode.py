@@ -8,6 +8,7 @@ from character import Character
 from ball import Ball
 from goal import Goal
 from hit_effect import HitEffect
+from score_board import ScoreBoard
 
 player = None
 ball = None
@@ -61,6 +62,9 @@ def init():
 
     goal_right = Goal('right')
     game_world.add_object(goal_right, 1)
+
+    score_board = ScoreBoard()
+    game_world.add_object(score_board, 2)
 
 
 def finish():
