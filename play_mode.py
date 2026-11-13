@@ -9,6 +9,7 @@ from ball import Ball
 from goal import Goal
 from hit_effect import HitEffect
 from score_board import ScoreBoard
+from timer_board import TimerBoard
 
 player = None
 ball = None
@@ -70,6 +71,9 @@ def init():
 
     score_board = ScoreBoard()
     game_world.add_object(score_board, 2)
+
+    timer_board = TimerBoard()
+    game_world.add_object(timer_board, 2)
 
 
 def finish():
