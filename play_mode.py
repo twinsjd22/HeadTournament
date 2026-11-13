@@ -17,6 +17,9 @@ goal_right = None
 # 점수: 왼쪽 팀(플레이어), 오른쪽 팀(상대)
 score_left = 0
 score_right = 0
+# 경기 남은 시간 (초)
+MATCH_TIME = 60.0
+time_left = MATCH_TIME
 
 
 def collide_circle(a, b):
@@ -41,8 +44,10 @@ def init():
     global goal_right
     global score_left
     global score_right
+    global time_left
 
     score_left, score_right = 0, 0
+    time_left = MATCH_TIME
 
     background = Background()
     game_world.add_object(background, 0)
@@ -74,8 +79,12 @@ def finish():
 def update():
     global score_left
     global score_right
+    global time_left
 
     game_world.update()
+
+    # 남은 시간을 지난 시간만큼 줄임 (0 밑으로는 내려가지 않음)
+    time_left = max(time_left - game_framework.frame_time, 0)
 
     if collide_circle(player.get_head(), ball.get_circle()):
         ball.bounce_from(*player.get_head())
