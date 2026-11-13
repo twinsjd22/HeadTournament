@@ -38,6 +38,14 @@ def collide_circle_box(c, bb):
     return (cx - px) ** 2 + (cy - py) ** 2 < r ** 2
 
 
+def reset_positions():
+    # 득점 후 선수와 공을 처음 자리로 되돌림
+    player.x, player.y = 320, 160
+    player.vy = 0
+    ball.x, ball.y = 640, 400
+    ball.vx, ball.vy = 0, 0
+
+
 def init():
     global player
     global ball
@@ -109,7 +117,7 @@ def update():
         if collide_circle_box(ball.get_circle(), goal.get_bb()):
             ball.bounce_from_box(*goal.get_bb())
 
-    # 공이 골대 안에 들어가면 골 (확인용 출력 후 공을 처음 자리로)
+    # 공이 골대 안에 들어가면 골 (확인용 출력 후 선수와 공을 처음 자리로)
     for goal in (goal_left, goal_right):
         if goal.is_ball_in(*ball.get_circle()):
             # 왼쪽 골대에 들어가면 오른쪽 팀, 오른쪽 골대에 들어가면 왼쪽 팀 득점
@@ -118,8 +126,7 @@ def update():
             else:
                 score_left += 1
             print(f'골! ({goal.side} 골대) {score_left} : {score_right}')
-            ball.x, ball.y = 640, 400
-            ball.vx, ball.vy = 0, 0
+            reset_positions()
 
 
 def draw():
