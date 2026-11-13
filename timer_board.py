@@ -15,4 +15,5 @@ class TimerBoard:
         pass
 
     def draw(self):
-        pass
+        # 점수 패널 아래 가운데에 타이머 패널
+        TimerBoard.image.draw(640, 584)
