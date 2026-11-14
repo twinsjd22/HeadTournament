@@ -7,11 +7,13 @@ from character_data import CHARACTER_TYPES
 # 선수 그림 높이 150px = 키 1.75m
 PIXEL_PER_METER = (150.0 / 1.75)
 
-# 달리기 속도
+# 달리기 속도 (속도 능력치 5 기준)
 RUN_SPEED_KMPH = 8.0
 RUN_SPEED_MPM = (RUN_SPEED_KMPH * 1000.0 / 60.0)
 RUN_SPEED_MPS = (RUN_SPEED_MPM / 60.0)
 RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
+# 속도 능력치가 5에서 1단계 낮아질 때마다 줄어드는 비율 (4는 0.9배, 2는 0.7배)
+SPEED_STEP_RATE = 0.1
 
 # 점프 속도와 중력 (경쾌한 점프를 위해 실제 중력의 2배)
 JUMP_SPEED_MPS = 9.0
@@ -38,6 +40,10 @@ class Character:
     def __init__(self, char_type):
         # char_type: 'defender', 'trickster', 'power' 같은 유형 키
         self.char_type = char_type
+        # 속도 능력치로 이 선수의 달리기 속도와 달리기 애니메이션 속도를 정함
+        speed_rate = 1 - SPEED_STEP_RATE * (5 - CHARACTER_TYPES[char_type]['speed'])
+        self.run_speed_pps = RUN_SPEED_PPS * speed_rate
+        self.run_frames_per_second = RUN_FRAMES_PER_SECOND * speed_rate
         self.x, self.y = 320, 160
         self.frame = 0
         self.dir = 0
@@ -109,11 +115,11 @@ class Character:
         if self.state == 'IDLE':
             self.frame = (self.frame + IDLE_FRAMES_PER_SECOND * game_framework.frame_time) % 4
         elif self.state == 'RUN':
-            self.frame = (self.frame + RUN_FRAMES_PER_SECOND * game_framework.frame_time) % 6
-            self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
+            self.frame = (self.frame + self.run_frames_per_second * game_framework.frame_time) % 6
+            self.x += self.dir * self.run_speed_pps * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
         elif self.state == 'JUMP':
-            self.x += self.dir * RUN_SPEED_PPS * game_framework.frame_time
+            self.x += self.dir * self.run_speed_pps * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
             self.y += self.vy * game_framework.frame_time
             self.vy -= GRAVITY_PPS2 * game_framework.frame_time
