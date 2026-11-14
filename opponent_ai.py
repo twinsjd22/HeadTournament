@@ -5,6 +5,11 @@ FOLLOW_START_DISTANCE = 30
 # 공과 가로 거리가 이보다 가까우면 멈춤 (시작 거리보다 짧게 두어 멈췄다 움직였다 떨리지 않게 함)
 FOLLOW_STOP_DISTANCE = 10
 
+# 헤딩 점프: 공이 가로로 이만큼 가깝고, 머리 위 이 높이 사이에서 내려오고 있으면 점프
+JUMP_DISTANCE = 60
+JUMP_MIN_HEIGHT = 230
+JUMP_MAX_HEIGHT = 400
+
 
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
@@ -35,6 +40,11 @@ class OpponentAI:
             elif dx * self.character.dir < 0:
                 # 공이 반대쪽으로 넘어가면 방향을 바꿈
                 self.move(-self.character.dir)
+
+        # 규칙 2: 공이 머리 높이로 가까이 내려오면 점프해서 헤딩
+        ball = play_mode.ball
+        if abs(dx) < JUMP_DISTANCE and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
+            self.character.jump()
 
     def draw(self):
         pass
