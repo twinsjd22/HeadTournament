@@ -10,6 +10,11 @@ JUMP_DISTANCE = 60
 JUMP_MIN_HEIGHT = 230
 JUMP_MAX_HEIGHT = 400
 
+# 킥: 공이 바라보는 쪽 발 앞 이 거리 사이에 있고 (발이 닿는 거리), 이 높이보다 낮으면 킥
+KICK_MIN_DISTANCE = 30
+KICK_MAX_DISTANCE = 70
+KICK_MAX_HEIGHT = 170
+
 
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
@@ -45,6 +50,11 @@ class OpponentAI:
         ball = play_mode.ball
         if abs(dx) < JUMP_DISTANCE and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
             self.character.jump()
+
+        # 규칙 3: 공이 발 앞에 있으면 킥 (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
+        front = dx * self.character.face_dir
+        if self.character.face_dir == -1 and KICK_MIN_DISTANCE < front < KICK_MAX_DISTANCE and ball.y < KICK_MAX_HEIGHT:
+            self.character.kick()
 
     def draw(self):
         pass
