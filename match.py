@@ -20,6 +20,14 @@ class Match:
         # 남은 시간을 지난 시간만큼 줄임 (0 밑으로는 내려가지 않음)
         self.time_left = max(self.time_left - game_framework.frame_time, 0)
 
+        # 시간이 끝났을 때 점수가 다르면 경기 종료 (같으면 골든골로 계속)
+        if self.time_left == 0 and self.score_left != self.score_right:
+            self.over = True
+            if self.score_left > self.score_right:
+                print(f'경기 종료 : 승리 {self.score_left} : {self.score_right}')
+            else:
+                print(f'경기 종료 : 패배 {self.score_left} : {self.score_right}')
+
     def goal(self, side):
         # 왼쪽 골대에 들어가면 오른쪽 팀, 오른쪽 골대에 들어가면 왼쪽 팀 득점
         if side == 'left':
