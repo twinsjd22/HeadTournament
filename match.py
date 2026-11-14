@@ -1,3 +1,5 @@
+import game_framework
+
 # 경기 시간 (초)
 MATCH_TIME = 60.0
 
@@ -15,7 +17,8 @@ class Match:
         self.over = False
 
     def update(self):
-        pass
+        # 남은 시간을 지난 시간만큼 줄임 (0 밑으로는 내려가지 않음)
+        self.time_left = max(self.time_left - game_framework.frame_time, 0)
 
     def draw(self):
         pass

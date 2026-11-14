@@ -20,9 +20,6 @@ match = None
 # 점수: 왼쪽 팀(플레이어), 오른쪽 팀(상대)
 score_left = 0
 score_right = 0
-# 경기 남은 시간 (초)
-MATCH_TIME = 60.0
-time_left = MATCH_TIME
 # 경기가 끝났는지
 match_over = False
 
@@ -58,11 +55,9 @@ def init():
     global match
     global score_left
     global score_right
-    global time_left
     global match_over
 
     score_left, score_right = 0, 0
-    time_left = MATCH_TIME
     match_over = False
 
     background = Background()
@@ -102,7 +97,6 @@ def finish():
 def update():
     global score_left
     global score_right
-    global time_left
     global match_over
 
     # 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
@@ -110,9 +104,6 @@ def update():
         return
 
     game_world.update()
-
-    # 남은 시간을 지난 시간만큼 줄임 (0 밑으로는 내려가지 않음)
-    time_left = max(time_left - game_framework.frame_time, 0)
 
     if collide_circle(player.get_head(), ball.get_circle()):
         ball.bounce_from(*player.get_head())
@@ -145,7 +136,7 @@ def update():
             reset_positions()
 
     # 시간이 끝났을 때 점수가 다르면 경기 종료
-    if time_left == 0 and score_left != score_right:
+    if match.time_left == 0 and score_left != score_right:
         match_over = True
         if score_left > score_right:
             print(f'경기 종료 : 승리 {score_left} : {score_right}')
