@@ -40,8 +40,9 @@ class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
     images = {}
 
-    def __init__(self, char_type):
+    def __init__(self, char_type, x, face_dir):
         # char_type: 'defender', 'trickster', 'power' 같은 유형 키
+        # x, face_dir: 시작 위치와 바라보는 방향 (1은 오른쪽, -1은 왼쪽)
         self.char_type = char_type
         # 속도 능력치로 이 선수의 달리기 속도와 달리기 애니메이션 속도를 정함
         speed_rate = 1 - SPEED_STEP_RATE * (5 - CHARACTER_TYPES[char_type]['speed'])
@@ -49,10 +50,10 @@ class Character:
         self.run_frames_per_second = RUN_FRAMES_PER_SECOND * speed_rate
         # 파워 능력치로 킥 세기 배율을 정함
         self.kick_power_rate = 1 + POWER_STEP_RATE * (CHARACTER_TYPES[char_type]['power'] - 3)
-        self.x, self.y = 320, 160
+        self.x, self.y = x, 160
         self.frame = 0
         self.dir = 0
-        self.face_dir = 1
+        self.face_dir = face_dir
         self.vy = 0
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False

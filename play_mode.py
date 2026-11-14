@@ -13,6 +13,7 @@ from timer_board import TimerBoard
 from match import Match
 
 player = None
+opponent = None
 ball = None
 goal_left = None
 goal_right = None
@@ -38,12 +39,15 @@ def reset_positions():
     # 득점 후 선수와 공을 처음 자리로 되돌림
     player.x, player.y = 320, 160
     player.vy = 0
+    opponent.x, opponent.y = 960, 160
+    opponent.vy = 0
     ball.x, ball.y = 640, 400
     ball.vx, ball.vy = 0, 0
 
 
 def init():
     global player
+    global opponent
     global ball
     global goal_left
     global goal_right
@@ -55,8 +59,12 @@ def init():
     ground = Ground()
     game_world.add_object(ground, 0)
 
-    player = Character('defender')
+    player = Character('defender', 320, 1)
     game_world.add_object(player, 1)
+
+    # 상대 선수: 오른쪽에서 왼쪽을 바라봄 (움직임은 나중에 AI로)
+    opponent = Character('trickster', 960, -1)
+    game_world.add_object(opponent, 1)
 
     ball = Ball()
     game_world.add_object(ball, 1)
