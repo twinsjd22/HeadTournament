@@ -106,7 +106,9 @@ def update():
     # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음
     for character in (player, opponent):
         if collide_circle(character.get_head(), ball.get_circle()):
-            ball.bounce_from(*character.get_head())
+            # 점프 중이면 머리가 움직이는 속도를 같이 넘김
+            head_vy = character.vy if character.state == 'JUMP' else 0
+            ball.bounce_from(*character.get_head(), head_vy)
             # 머리와 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
             head_x, head_y, head_r = character.get_head()
             game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)

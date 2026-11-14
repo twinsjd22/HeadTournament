@@ -25,6 +25,9 @@ ROLL_SPEED_KEEP_PER_SECOND = 0.4
 # 헤딩으로 튕겨 나가는 최소 속도
 HEADING_MIN_SPEED_MPS = 4.0
 HEADING_MIN_SPEED_PPS = (HEADING_MIN_SPEED_MPS * PIXEL_PER_METER)
+# 점프 헤딩 때 공이 머리보다 이만큼 더 빨리 떠나게 함 (다시 맞지 않을 만큼만)
+HEADING_LEAVE_MARGIN_MPS = 0.5
+HEADING_LEAVE_MARGIN_PPS = (HEADING_LEAVE_MARGIN_MPS * PIXEL_PER_METER)
 
 # 킥 속도 (가로, 세로, 파워 능력치 3 기준)
 KICK_SPEED_X_MPS = 6.0
@@ -74,7 +77,8 @@ class Ball:
     def get_circle(self):
         return self.x, self.y, 32
 
-    def bounce_from(self, cx, cy, r):
+    def bounce_from(self, cx, cy, r, head_vy):
+        # head_vy: 머리가 위아래로 움직이는 속도 (점프 중이 아니면 0)
         dx, dy = self.x - cx, self.y - cy
         d = math.sqrt(dx * dx + dy * dy)
         if d == 0:
@@ -85,6 +89,11 @@ class Ball:
         self.y = cy + ny * (r + 32)
 
         speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * 0.8, HEADING_MIN_SPEED_PPS)
+        # 머리가 공 쪽으로 올라가며 받으면, 공이 머리보다 조금 더 빨리 떠나게 함
+        # (머리가 공을 다시 따라잡지 않아 한 번만 맞음)
+        head_speed_to_ball = head_vy * ny
+        if head_speed_to_ball > 0:
+            speed = max(speed, head_speed_to_ball + HEADING_LEAVE_MARGIN_PPS)
         self.vx, self.vy = nx * speed, ny * speed
 
     def bounce_from_box(self, left, bottom, right, top):
