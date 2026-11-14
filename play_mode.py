@@ -112,6 +112,11 @@ def update():
             foot_x, foot_y, foot_r = player.get_foot()
             game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
 
+    # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음)
+    for character in (player, opponent):
+        if collide_circle_box(ball.get_circle(), character.get_bb()):
+            ball.bounce_from_box(*character.get_bb())
+
     # 공이 크로스바에 맞으면 튕김
     for goal in (goal_left, goal_right):
         if collide_circle_box(ball.get_circle(), goal.get_bb()):
