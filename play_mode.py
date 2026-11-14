@@ -11,6 +11,7 @@ from hit_effect import HitEffect
 from score_board import ScoreBoard
 from timer_board import TimerBoard
 from match import Match
+from opponent_ai import OpponentAI
 
 player = None
 opponent = None
@@ -65,6 +66,10 @@ def init():
     # 상대 선수: 오른쪽에서 왼쪽을 바라봄 (움직임은 나중에 AI로)
     opponent = Character('trickster', 960, -1)
     game_world.add_object(opponent, 1)
+
+    # 상대 선수는 AI가 조종 (그림이 없으므로 레이어는 상관없음)
+    opponent_ai = OpponentAI(opponent)
+    game_world.add_object(opponent_ai, 1)
 
     ball = Ball()
     game_world.add_object(ball, 1)
