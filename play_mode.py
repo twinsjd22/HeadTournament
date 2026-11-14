@@ -98,7 +98,7 @@ def update():
 
     if player.state == 'KICK' and 2 <= int(player.frame) <= 4 and not player.kick_hit:
         if collide_circle(player.get_foot(), ball.get_circle()):
-            ball.kicked(player.face_dir)
+            ball.kicked(player.face_dir, player.kick_power_rate)
             player.kick_hit = True
             # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
             foot_x, foot_y, foot_r = player.get_foot()

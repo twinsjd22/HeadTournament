@@ -15,6 +15,9 @@ RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 # 속도 능력치가 5에서 1단계 낮아질 때마다 줄어드는 비율 (4는 0.9배, 2는 0.7배)
 SPEED_STEP_RATE = 0.1
 
+# 파워 능력치가 3에서 1단계 달라질 때마다 킥 세기가 바뀌는 비율 (5는 1.3배, 2는 0.85배)
+POWER_STEP_RATE = 0.15
+
 # 점프 속도와 중력 (경쾌한 점프를 위해 실제 중력의 2배)
 JUMP_SPEED_MPS = 9.0
 JUMP_SPEED_PPS = (JUMP_SPEED_MPS * PIXEL_PER_METER)
@@ -44,6 +47,8 @@ class Character:
         speed_rate = 1 - SPEED_STEP_RATE * (5 - CHARACTER_TYPES[char_type]['speed'])
         self.run_speed_pps = RUN_SPEED_PPS * speed_rate
         self.run_frames_per_second = RUN_FRAMES_PER_SECOND * speed_rate
+        # 파워 능력치로 킥 세기 배율을 정함
+        self.kick_power_rate = 1 + POWER_STEP_RATE * (CHARACTER_TYPES[char_type]['power'] - 3)
         self.x, self.y = 320, 160
         self.frame = 0
         self.dir = 0

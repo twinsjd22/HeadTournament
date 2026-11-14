@@ -26,7 +26,7 @@ ROLL_SPEED_KEEP_PER_SECOND = 0.4
 HEADING_MIN_SPEED_MPS = 4.0
 HEADING_MIN_SPEED_PPS = (HEADING_MIN_SPEED_MPS * PIXEL_PER_METER)
 
-# 킥 속도 (가로, 세로)
+# 킥 속도 (가로, 세로, 파워 능력치 3 기준)
 KICK_SPEED_X_MPS = 6.0
 KICK_SPEED_X_PPS = (KICK_SPEED_X_MPS * PIXEL_PER_METER)
 KICK_SPEED_Y_MPS = 5.0
@@ -107,9 +107,10 @@ class Ball:
             self.vx -= (1 + 0.7) * vn * nx
             self.vy -= (1 + 0.7) * vn * ny
 
-    def kicked(self, face_dir):
-        self.vx = face_dir * KICK_SPEED_X_PPS
-        self.vy = KICK_SPEED_Y_PPS
+    def kicked(self, face_dir, power_rate):
+        # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
+        self.vx = face_dir * KICK_SPEED_X_PPS * power_rate
+        self.vy = KICK_SPEED_Y_PPS * power_rate
 
     def draw(self):
         Ball.image.clip_draw(int(self.frame) * 64, 0, 64, 64, self.x, self.y)
