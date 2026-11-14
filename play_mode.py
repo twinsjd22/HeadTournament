@@ -10,11 +10,13 @@ from goal import Goal
 from hit_effect import HitEffect
 from score_board import ScoreBoard
 from timer_board import TimerBoard
+from match import Match
 
 player = None
 ball = None
 goal_left = None
 goal_right = None
+match = None
 # 점수: 왼쪽 팀(플레이어), 오른쪽 팀(상대)
 score_left = 0
 score_right = 0
@@ -53,6 +55,7 @@ def init():
     global ball
     global goal_left
     global goal_right
+    global match
     global score_left
     global score_right
     global time_left
@@ -86,6 +89,10 @@ def init():
 
     timer_board = TimerBoard()
     game_world.add_object(timer_board, 2)
+
+    # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
+    match = Match()
+    game_world.add_object(match, 2)
 
 
 def finish():
