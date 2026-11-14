@@ -17,9 +17,6 @@ ball = None
 goal_left = None
 goal_right = None
 match = None
-# 점수: 왼쪽 팀(플레이어), 오른쪽 팀(상대)
-score_left = 0
-score_right = 0
 # 경기가 끝났는지
 match_over = False
 
@@ -53,11 +50,8 @@ def init():
     global goal_left
     global goal_right
     global match
-    global score_left
-    global score_right
     global match_over
 
-    score_left, score_right = 0, 0
     match_over = False
 
     background = Background()
@@ -95,8 +89,6 @@ def finish():
 
 
 def update():
-    global score_left
-    global score_right
     global match_over
 
     # 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
@@ -127,21 +119,17 @@ def update():
     # 공이 골대 안에 들어가면 골 (확인용 출력 후 선수와 공을 처음 자리로)
     for goal in (goal_left, goal_right):
         if goal.is_ball_in(*ball.get_circle()):
-            # 왼쪽 골대에 들어가면 오른쪽 팀, 오른쪽 골대에 들어가면 왼쪽 팀 득점
-            if goal.side == 'left':
-                score_right += 1
-            else:
-                score_left += 1
-            print(f'골! ({goal.side} 골대) {score_left} : {score_right}')
+            match.goal(goal.side)
+            print(f'골! ({goal.side} 골대) {match.score_left} : {match.score_right}')
             reset_positions()
 
     # 시간이 끝났을 때 점수가 다르면 경기 종료
-    if match.time_left == 0 and score_left != score_right:
+    if match.time_left == 0 and match.score_left != match.score_right:
         match_over = True
-        if score_left > score_right:
-            print(f'경기 종료 : 승리 {score_left} : {score_right}')
+        if match.score_left > match.score_right:
+            print(f'경기 종료 : 승리 {match.score_left} : {match.score_right}')
         else:
-            print(f'경기 종료 : 패배 {score_left} : {score_right}')
+            print(f'경기 종료 : 패배 {match.score_left} : {match.score_right}')
 
 
 def draw():
