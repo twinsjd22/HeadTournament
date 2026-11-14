@@ -1,4 +1,4 @@
-from pico2d import load_image, clamp, draw_circle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE
+from pico2d import load_image, clamp, draw_circle, draw_rectangle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE
 from transitions import Machine
 
 import game_framework
@@ -154,6 +154,10 @@ class Character:
             return self.x + self.face_dir * 16, self.y + 39, 30
         return self.x + self.face_dir * 2, self.y + 39, 30
 
+    def get_bb(self):
+        # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위
+        return self.x - 18, self.y - 80, self.x + 18, self.y + 10
+
     def get_foot(self):
         return self.x + self.face_dir * 37, self.y - 22, 20
 
@@ -168,5 +172,6 @@ class Character:
         elif self.state == 'KICK':
             self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
+        draw_rectangle(*self.get_bb())
         if self.state == 'KICK':
             draw_circle(*self.get_foot(), 255, 0, 0)
