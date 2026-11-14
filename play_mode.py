@@ -55,7 +55,7 @@ def init():
     ground = Ground()
     game_world.add_object(ground, 0)
 
-    player = Character()
+    player = Character('defender')
     game_world.add_object(player, 1)
 
     ball = Ball()

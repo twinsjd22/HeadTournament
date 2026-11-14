@@ -2,6 +2,7 @@ from pico2d import load_image, clamp, draw_circle, SDL_KEYDOWN, SDL_KEYUP, SDLK_
 from transitions import Machine
 
 import game_framework
+from character_data import CHARACTER_TYPES
 
 # 선수 그림 높이 150px = 키 1.75m
 PIXEL_PER_METER = (150.0 / 1.75)
@@ -31,9 +32,12 @@ KICK_FRAMES_PER_SECOND = 17.0
 
 
 class Character:
-    image = None
+    # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
+    images = {}
 
-    def __init__(self):
+    def __init__(self, char_type):
+        # char_type: 'defender', 'trickster', 'power' 같은 유형 키
+        self.char_type = char_type
         self.x, self.y = 320, 160
         self.frame = 0
         self.dir = 0
@@ -41,8 +45,9 @@ class Character:
         self.vy = 0
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
-        if Character.image == None:
-            Character.image = load_image('resource/sheet_defender.png')
+        if char_type not in Character.images:
+            Character.images[char_type] = load_image(CHARACTER_TYPES[char_type]['sheet'])
+        self.image = Character.images[char_type]
 
         # 현재 캐릭터는 IDLE, RUN, JUMP, KICK 상태를 갖는다.
         self.machine = Machine(
@@ -143,13 +148,13 @@ class Character:
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
         if self.state == 'IDLE':
-            Character.image.clip_composite_draw(int(self.frame) * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            self.image.clip_composite_draw(int(self.frame) * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'RUN':
-            Character.image.clip_composite_draw(int(self.frame) * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            self.image.clip_composite_draw(int(self.frame) * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'JUMP':
-            Character.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            self.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'KICK':
-            Character.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+            self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
         if self.state == 'KICK':
             draw_circle(*self.get_foot(), 255, 0, 0)
