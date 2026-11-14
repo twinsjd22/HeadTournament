@@ -98,19 +98,21 @@ def update():
 
     game_world.update()
 
-    if collide_circle(player.get_head(), ball.get_circle()):
-        ball.bounce_from(*player.get_head())
-        # 머리와 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
-        head_x, head_y, head_r = player.get_head()
-        game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
+    # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음
+    for character in (player, opponent):
+        if collide_circle(character.get_head(), ball.get_circle()):
+            ball.bounce_from(*character.get_head())
+            # 머리와 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
+            head_x, head_y, head_r = character.get_head()
+            game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
 
-    if player.state == 'KICK' and 2 <= int(player.frame) <= 4 and not player.kick_hit:
-        if collide_circle(player.get_foot(), ball.get_circle()):
-            ball.kicked(player.face_dir, player.kick_power_rate)
-            player.kick_hit = True
-            # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
-            foot_x, foot_y, foot_r = player.get_foot()
-            game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
+        if character.state == 'KICK' and 2 <= int(character.frame) <= 4 and not character.kick_hit:
+            if collide_circle(character.get_foot(), ball.get_circle()):
+                ball.kicked(character.face_dir, character.kick_power_rate)
+                character.kick_hit = True
+                # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
+                foot_x, foot_y, foot_r = character.get_foot()
+                game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
 
     # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음)
     for character in (player, opponent):
