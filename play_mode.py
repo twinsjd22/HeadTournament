@@ -147,6 +147,7 @@ def update():
     for character in (player, opponent):
         if collide_circle_box(ball.get_circle(), character.get_bb()):
             ball.bounce_from_box(*character.get_bb())
+            ball.blocked()
 
     # 공이 크로스바에 맞으면 튕김
     for goal in (goal_left, goal_right):

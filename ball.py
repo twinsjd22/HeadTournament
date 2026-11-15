@@ -35,6 +35,13 @@ KICK_SPEED_X_PPS = (KICK_SPEED_X_MPS * PIXEL_PER_METER)
 KICK_SPEED_Y_MPS = 5.0
 KICK_SPEED_Y_PPS = (KICK_SPEED_Y_MPS * PIXEL_PER_METER)
 
+# 빠르게 날아와 선수 몸에 막힌 낮은 공은 위로 튀어 오름
+BLOCK_MIN_SPEED_MPS = 2.5
+BLOCK_MIN_SPEED_PPS = (BLOCK_MIN_SPEED_MPS * PIXEL_PER_METER)
+BLOCK_UP_SPEED_MPS = 8.0
+BLOCK_UP_SPEED_PPS = (BLOCK_UP_SPEED_MPS * PIXEL_PER_METER)
+BLOCK_MAX_HEIGHT = 170
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -115,6 +122,11 @@ class Ball:
         if vn < 0:
             self.vx -= (1 + 0.7) * vn * nx
             self.vy -= (1 + 0.7) * vn * ny
+
+    def blocked(self):
+        # 빠른 낮은 공이 몸에 막히면 위로 튀어 오름 (가까이서 서로 차며 갇히지 않게 함)
+        if abs(self.vx) > BLOCK_MIN_SPEED_PPS and self.y < BLOCK_MAX_HEIGHT:
+            self.vy = max(self.vy, BLOCK_UP_SPEED_PPS)
 
     def kicked(self, face_dir, power_rate):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
