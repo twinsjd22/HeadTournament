@@ -21,6 +21,8 @@ BALL_LOW_HEIGHT = 170
 BEHIND_DISTANCE = 50
 # 공이 오른쪽 앞(자기 골대 쪽)에 이 거리 안으로 낮게 있으면 점프해서 넘어감
 JUMP_OVER_DISTANCE = 90
+# 높은 공은 공보다 이만큼 오른쪽에 서서, 공이 머리 왼쪽에 맞아 플레이어 쪽으로 튕기게 함
+HEADING_OFFSET = 20
 
 
 class OpponentAI:
@@ -45,11 +47,12 @@ class OpponentAI:
         dx = ball.x - self.character.x
 
         # 규칙 1: 공 쪽으로 이동
-        # 공이 낮으면 공 오른쪽에 서서 플레이어 골대 쪽으로 밀고, 높으면 공 아래로 감
+        # 공이 낮으면 공 오른쪽에 서서 플레이어 골대 쪽으로 밀고,
+        # 높으면 공 아래 약간 오른쪽에 서서 헤딩이 플레이어 쪽으로 가게 함
         if ball.y < BALL_LOW_HEIGHT:
             target_dx = ball.x + BEHIND_DISTANCE - self.character.x
         else:
-            target_dx = dx
+            target_dx = ball.x + HEADING_OFFSET - self.character.x
         if self.character.dir == 0:
             if abs(target_dx) > FOLLOW_START_DISTANCE:
                 self.move(1 if target_dx > 0 else -1)
@@ -67,7 +70,8 @@ class OpponentAI:
             self.character.jump()
 
         # 규칙 2: 공이 머리 높이로 가까이 내려오면 점프해서 헤딩
-        if abs(dx) < JUMP_DISTANCE and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
+        # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 점프하지 않음)
+        if -JUMP_DISTANCE < dx <= 0 and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
             self.character.jump()
 
         # 규칙 3: 공이 발 앞에 있으면 킥 (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
