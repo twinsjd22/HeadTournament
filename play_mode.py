@@ -13,11 +13,20 @@ from timer_board import TimerBoard
 from match import Match
 from opponent_ai import OpponentAI
 
+# 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
+MIN_PLAYER_DISTANCE = 140
+# 두 선수의 높이 차이가 이보다 작으면 같은 높이로 보고 밀어냄 (한쪽이 높이 떠 있을 때는 밀지 않음)
+PLAYER_OVERLAP_HEIGHT = 90
+# 밀어내는 최대 속도 (한 번에 확 밀려 순간이동처럼 보이지 않게 함)
+PLAYER_PUSH_SPEED_PPS = 400
+
 player = None
 opponent = None
 ball = None
 goal_left = None
 goal_right = None
+# 플레이어가 상대보다 왼쪽에 있으면 1, 오른쪽에 있으면 -1 (밀어낼 방향)
+player_side = 1
 match = None
 
 
@@ -97,11 +106,24 @@ def finish():
 
 
 def update():
+    global player_side
+
     # 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
     if match.over:
         return
 
     game_world.update()
+
+    # 두 선수가 너무 붙으면 서로 반씩 밀어냄 (공이 둘 사이에 끼어 갇히지 않게 함)
+    gap = opponent.x - player.x
+    if abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
+        # 원래 있던 쪽으로 밀고, 한 프레임에 밀어내는 거리는 최대 속도만큼으로 제한
+        push = min((MIN_PLAYER_DISTANCE - gap * player_side) / 2, PLAYER_PUSH_SPEED_PPS * game_framework.frame_time)
+        player.x = clamp(50, player.x - player_side * push, 1280 - 50)
+        opponent.x = clamp(50, opponent.x + player_side * push, 1280 - 50)
+    else:
+        # 충분히 떨어져 있거나 한쪽이 높이 떠 있으면, 지금 위치로 어느 쪽인지 새로 정함
+        player_side = 1 if gap >= 0 else -1
 
     # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음
     for character in (player, opponent):
