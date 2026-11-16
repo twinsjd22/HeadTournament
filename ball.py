@@ -42,6 +42,13 @@ BLOCK_UP_SPEED_MPS = 10.0
 BLOCK_UP_SPEED_PPS = (BLOCK_UP_SPEED_MPS * PIXEL_PER_METER)
 BLOCK_MAX_HEIGHT = 170
 
+# 두 선수 머리 사이에서 공이 좌우로 왕복하면(핑퐁) 위로 크게 튀어 빠져나가게 함
+PINGPONG_TIME = 0.3        # 이 시간(초) 안에 다른 선수 머리에 맞으면 왕복 1번
+PINGPONG_COUNT = 2         # 왕복이 이만큼 되면 위로 튀김
+PINGPONG_UP_SPEED_MPS = 10.0
+PINGPONG_UP_SPEED_PPS = (PINGPONG_UP_SPEED_MPS * PIXEL_PER_METER)
+HEAD_IGNORE_TIME = 0.15    # 위로 튄 직후 이 시간 동안은 머리에 맞지 않음 (빠져나가는 중)
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -53,10 +60,18 @@ class Ball:
         self.x, self.y = 640, 400
         self.frame = 0
         self.vx, self.vy = 0, 0
+        # 마지막으로 헤딩한 선수, 그 뒤로 지난 시간, 머리 사이 왕복 횟수
+        self.last_header = None
+        self.time_since_head = 0.0
+        self.pingpong = 0
+        # 남은 머리 충돌 무시 시간
+        self.head_ignore = 0.0
         if Ball.image == None:
             Ball.image = load_image('resource/ball_sheet.png')
 
     def update(self):
+        self.time_since_head += game_framework.frame_time
+        self.head_ignore = max(self.head_ignore - game_framework.frame_time, 0)
         self.x += self.vx * game_framework.frame_time
         self.y += self.vy * game_framework.frame_time
         self.vy -= GRAVITY_PPS2 * game_framework.frame_time
@@ -84,8 +99,18 @@ class Ball:
     def get_circle(self):
         return self.x, self.y, 32
 
-    def bounce_from(self, cx, cy, r, head_vy):
+    def bounce_from(self, cx, cy, r, head_vy, header):
         # head_vy: 머리가 위아래로 움직이는 속도 (점프 중이 아니면 0)
+        # header: 헤딩한 선수 (머리 사이 왕복 판정용)
+
+        # 방금 다른 선수 머리에 맞았던 공이면 왕복 횟수 증가, 아니면 처음부터
+        if self.last_header is not None and self.last_header is not header and self.time_since_head < PINGPONG_TIME:
+            self.pingpong += 1
+        else:
+            self.pingpong = 0
+        self.last_header = header
+        self.time_since_head = 0.0
+
         dx, dy = self.x - cx, self.y - cy
         d = math.sqrt(dx * dx + dy * dy)
         if d == 0:
@@ -102,6 +127,13 @@ class Ball:
         if head_speed_to_ball > 0:
             speed = max(speed, head_speed_to_ball + HEADING_LEAVE_MARGIN_PPS)
         self.vx, self.vy = nx * speed, ny * speed
+
+        # 머리 사이에서 왕복이 계속되면 위로 크게 튀어 빠져나감
+        if self.pingpong >= PINGPONG_COUNT:
+            self.vx = 0
+            self.vy = PINGPONG_UP_SPEED_PPS
+            self.head_ignore = HEAD_IGNORE_TIME
+            self.pingpong = 0
 
     def bounce_from_box(self, left, bottom, right, top):
         # 사각형 위에서 공 중심과 가장 가까운 점
