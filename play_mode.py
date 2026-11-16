@@ -4,7 +4,7 @@ import game_framework
 import game_world
 from background import Background
 from ground import Ground
-from character import Character, GAUGE_TOUCH
+from character import Character, GAUGE_TOUCH, GAUGE_SCORE, GAUGE_CONCEDE
 from ball import Ball
 from goal import Goal
 from hit_effect import HitEffect
@@ -162,6 +162,13 @@ def update():
     for goal in (goal_left, goal_right):
         if goal.is_ball_in(*ball.get_circle()):
             match.goal(goal.side)
+            # 넣은 팀은 +30, 먹힌 팀은 +15 (왼쪽 골대에 들어가면 오른쪽 팀인 상대가 넣은 것)
+            if goal.side == 'left':
+                opponent.add_gauge(GAUGE_SCORE)
+                player.add_gauge(GAUGE_CONCEDE)
+            else:
+                player.add_gauge(GAUGE_SCORE)
+                opponent.add_gauge(GAUGE_CONCEDE)
             print(f'골! ({goal.side} 골대) {match.score_left} : {match.score_right}')
             reset_positions()
 
