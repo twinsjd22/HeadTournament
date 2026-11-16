@@ -1,4 +1,7 @@
+import math
+
 import play_mode
+from ball import GRAVITY_PPS2
 
 # 공과 가로 거리가 이보다 멀면 공 쪽으로 움직이기 시작
 FOLLOW_START_DISTANCE = 30
@@ -23,6 +26,17 @@ BEHIND_DISTANCE = 50
 JUMP_OVER_DISTANCE = 90
 # 높은 공은 공보다 이만큼 오른쪽에 서서, 공이 머리 왼쪽에 맞아 플레이어 쪽으로 튕기게 함
 HEADING_OFFSET = 20
+# 서 있는 선수의 머리 높이 (높은 공이 이 높이까지 떨어질 자리를 예측함)
+HEAD_HEIGHT = 230
+
+
+def predict_landing_x(ball):
+    # 공이 머리 높이까지 떨어졌을 때의 가로 위치 (벽에 튕기는 것은 무시)
+    height = ball.y - HEAD_HEIGHT
+    if height <= 0:
+        return ball.x
+    time = (ball.vy + math.sqrt(ball.vy * ball.vy + 2 * GRAVITY_PPS2 * height)) / GRAVITY_PPS2
+    return min(max(ball.x + ball.vx * time, 32), 1280 - 32)
 
 
 class OpponentAI:
@@ -48,11 +62,11 @@ class OpponentAI:
 
         # 규칙 1: 공 쪽으로 이동
         # 공이 낮으면 공 오른쪽에 서서 플레이어 골대 쪽으로 밀고,
-        # 높으면 공 아래 약간 오른쪽에 서서 헤딩이 플레이어 쪽으로 가게 함
+        # 높으면 공이 떨어질 자리보다 약간 오른쪽에 미리 서서 헤딩이 플레이어 쪽으로 가게 함
         if ball.y < BALL_LOW_HEIGHT:
             target_dx = ball.x + BEHIND_DISTANCE - self.character.x
         else:
-            target_dx = ball.x + HEADING_OFFSET - self.character.x
+            target_dx = predict_landing_x(ball) + HEADING_OFFSET - self.character.x
         if self.character.dir == 0:
             if abs(target_dx) > FOLLOW_START_DISTANCE:
                 self.move(1 if target_dx > 0 else -1)
