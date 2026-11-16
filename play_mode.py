@@ -4,7 +4,7 @@ import game_framework
 import game_world
 from background import Background
 from ground import Ground
-from character import Character, GAUGE_TOUCH, GAUGE_SCORE, GAUGE_CONCEDE
+from character import Character, GAUGE_SCORE, GAUGE_CONCEDE
 from ball import Ball
 from goal import Goal
 from hit_effect import HitEffect
@@ -143,7 +143,7 @@ def update():
             head_x, head_y, head_r = character.get_head()
             game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
             # 공을 건드리면 스킬 게이지 증가
-            character.add_gauge(GAUGE_TOUCH)
+            character.touch_ball()
 
         if character.state == 'KICK' and 2 <= int(character.frame) <= 4 and not character.kick_hit:
             if collide_circle(character.get_foot(), ball.get_circle()):
@@ -153,7 +153,7 @@ def update():
                 foot_x, foot_y, foot_r = character.get_foot()
                 game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
                 # 공을 건드리면 스킬 게이지 증가
-                character.add_gauge(GAUGE_TOUCH)
+                character.touch_ball()
 
     # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음)
     for character in (player, opponent):

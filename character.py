@@ -21,6 +21,9 @@ GAUGE_MAX = 100
 GAUGE_TOUCH = 5
 GAUGE_SCORE = 30
 GAUGE_CONCEDE = 15
+# 공 터치로 게이지가 오른 뒤, 이 시간(초) 동안은 다시 터치해도 오르지 않음
+# (두 선수 사이에 공이 끼어 연달아 맞을 때 게이지가 한꺼번에 차지 않게 함)
+TOUCH_COOLDOWN = 0.5
 
 # 파워 능력치가 3에서 1단계 달라질 때마다 킥 세기가 바뀌는 비율 (5는 1.3배, 2는 0.85배)
 POWER_STEP_RATE = 0.15
@@ -64,6 +67,8 @@ class Character:
         self.vy = 0
         # 스킬 게이지 (새 경기마다 0에서 시작)
         self.gauge = 0
+        # 다음 터치 게이지까지 남은 시간
+        self.touch_cooldown = 0.0
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
         if char_type not in Character.images:
@@ -127,6 +132,8 @@ class Character:
             self.move_start()
 
     def update(self):
+        self.touch_cooldown = max(self.touch_cooldown - game_framework.frame_time, 0)
+
         if self.state == 'IDLE':
             self.frame = (self.frame + IDLE_FRAMES_PER_SECOND * game_framework.frame_time) % 4
         elif self.state == 'RUN':
@@ -157,6 +164,12 @@ class Character:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
+
+    def touch_ball(self):
+        # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
+        if self.touch_cooldown == 0:
+            self.add_gauge(GAUGE_TOUCH)
+            self.touch_cooldown = TOUCH_COOLDOWN
 
     def add_gauge(self, amount):
         # 게이지를 올리되 최대값을 넘지 않게 함
