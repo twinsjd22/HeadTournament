@@ -29,6 +29,8 @@ goal_right = None
 # 플레이어가 상대보다 왼쪽에 있으면 1, 오른쪽에 있으면 -1 (밀어낼 방향)
 player_side = 1
 match = None
+# P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
+paused = False
 
 
 def collide_circle(a, b):
@@ -116,8 +118,8 @@ def finish():
 def update():
     global player_side
 
-    # 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
-    if match.over:
+    # 멈춤 중이거나 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
+    if paused or match.over:
         return
 
     game_world.update()
@@ -188,12 +190,17 @@ def draw():
 
 
 def handle_events():
+    global paused
+
     events = get_events()
     for event in events:
         if event.type == SDL_QUIT:
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             game_framework.quit()
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
+            # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
+            paused = not paused
         else:
             player.handle_event(event)
 
