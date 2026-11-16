@@ -15,6 +15,13 @@ RUN_SPEED_PPS = (RUN_SPEED_MPS * PIXEL_PER_METER)
 # 속도 능력치가 5에서 1단계 낮아질 때마다 줄어드는 비율 (4는 0.9배, 2는 0.7배)
 SPEED_STEP_RATE = 0.1
 
+# 스킬 게이지 최대값 (가득 차면 필살 스킬 사용 가능)
+GAUGE_MAX = 100
+# 스킬 게이지가 오르는 양
+GAUGE_TOUCH = 5
+GAUGE_SCORE = 30
+GAUGE_CONCEDE = 15
+
 # 파워 능력치가 3에서 1단계 달라질 때마다 킥 세기가 바뀌는 비율 (5는 1.3배, 2는 0.85배)
 POWER_STEP_RATE = 0.15
 
@@ -55,6 +62,8 @@ class Character:
         self.dir = 0
         self.face_dir = face_dir
         self.vy = 0
+        # 스킬 게이지 (새 경기마다 0에서 시작)
+        self.gauge = 0
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
         if char_type not in Character.images:
@@ -148,6 +157,10 @@ class Character:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
+
+    def add_gauge(self, amount):
+        # 게이지를 올리되 최대값을 넘지 않게 함
+        self.gauge = min(self.gauge + amount, GAUGE_MAX)
 
     def get_head(self):
         if self.state == 'RUN':
