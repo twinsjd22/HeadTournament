@@ -12,6 +12,7 @@ from score_board import ScoreBoard
 from timer_board import TimerBoard
 from match import Match
 from opponent_ai import OpponentAI
+from gauge_board import GaugeBoard
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
 MIN_PLAYER_DISTANCE = 140
@@ -95,6 +96,13 @@ def init():
 
     timer_board = TimerBoard()
     game_world.add_object(timer_board, 2)
+
+    # 스킬 게이지: 플레이어는 왼쪽 아래, 상대는 오른쪽 아래
+    player_gauge = GaugeBoard(player, 'left')
+    game_world.add_object(player_gauge, 2)
+
+    opponent_gauge = GaugeBoard(opponent, 'right')
+    game_world.add_object(opponent_gauge, 2)
 
     # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
     match = Match()
