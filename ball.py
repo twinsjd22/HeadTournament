@@ -49,6 +49,9 @@ PINGPONG_UP_SPEED_MPS = 10.0
 PINGPONG_UP_SPEED_PPS = (PINGPONG_UP_SPEED_MPS * PIXEL_PER_METER)
 HEAD_IGNORE_TIME = 0.15    # 위로 튄 직후 이 시간 동안은 머리에 맞지 않음 (빠져나가는 중)
 
+# 파워슛: 가로 속도만 이만큼 세게 해서 낮고 빠르게 날아감
+POWER_SHOT_RATE = 2.0
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -160,10 +163,13 @@ class Ball:
         if abs(self.vx) > BLOCK_MIN_SPEED_PPS and self.y < BLOCK_MAX_HEIGHT:
             self.vy = max(self.vy, BLOCK_UP_SPEED_PPS)
 
-    def kicked(self, face_dir, power_rate):
+    def kicked(self, face_dir, power_rate, power_shot):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
+        # power_shot: 파워슛이면 가로 속도를 크게 올림
         self.vx = face_dir * KICK_SPEED_X_PPS * power_rate
         self.vy = KICK_SPEED_Y_PPS * power_rate
+        if power_shot:
+            self.vx *= POWER_SHOT_RATE
 
     def draw(self):
         Ball.image.clip_draw(int(self.frame) * 64, 0, 64, 64, self.x, self.y)

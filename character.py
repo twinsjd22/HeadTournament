@@ -69,6 +69,8 @@ class Character:
         self.gauge = 0
         # 다음 터치 게이지까지 남은 시간
         self.touch_cooldown = 0.0
+        # 파워슛 준비 상태 (필살 스킬을 쓰면 다음 킥이 파워슛)
+        self.power_shot = False
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
         if char_type not in Character.images:
@@ -175,6 +177,8 @@ class Character:
             return
         self.gauge = 0
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
+        if self.char_type == 'power':
+            self.power_shot = True
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)

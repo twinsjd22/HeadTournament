@@ -149,7 +149,9 @@ def update():
 
         if character.state == 'KICK' and 2 <= int(character.frame) <= 4 and not character.kick_hit:
             if collide_circle(character.get_foot(), ball.get_circle()):
-                ball.kicked(character.face_dir, character.kick_power_rate)
+                ball.kicked(character.face_dir, character.kick_power_rate, character.power_shot)
+                # 파워슛은 한 번 차면 해제
+                character.power_shot = False
                 character.kick_hit = True
                 # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
                 foot_x, foot_y, foot_r = character.get_foot()
