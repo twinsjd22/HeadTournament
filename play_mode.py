@@ -18,6 +18,8 @@ from gauge_board import GaugeBoard
 MIN_PLAYER_DISTANCE = 140
 # 두 선수의 높이 차이가 이보다 작으면 같은 높이로 보고 밀어냄 (한쪽이 높이 떠 있을 때는 밀지 않음)
 PLAYER_OVERLAP_HEIGHT = 90
+# 파워슛 헤딩 이펙트 크기 (보통 128px)
+POWER_EFFECT_SIZE = 256
 # 밀어내는 최대 속도 (한 번에 확 밀려 순간이동처럼 보이지 않게 함)
 PLAYER_PUSH_SPEED_PPS = 400
 
@@ -141,13 +143,15 @@ def update():
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
             head_vy = character.vy if character.state == 'JUMP' else 0
             ball.bounce_from(*character.get_head(), head_vy, character)
-            # 파워슛이 준비되어 있으면 헤딩도 세게, 한 번 쓰면 해제
+            # 파워슛이 준비되어 있으면 헤딩도 세게, 이펙트도 크게 (한 번 쓰면 해제)
+            effect_size = 128
             if character.power_shot:
                 ball.power_header()
                 character.power_shot = False
+                effect_size = POWER_EFFECT_SIZE
             # 머리와 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
             head_x, head_y, head_r = character.get_head()
-            game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2), 1)
+            game_world.add_object(HitEffect((head_x + ball.x) / 2, (head_y + ball.y) / 2, effect_size), 1)
             # 공을 건드리면 스킬 게이지 증가
             character.touch_ball()
 
