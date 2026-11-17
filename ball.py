@@ -163,6 +163,10 @@ class Ball:
         if abs(self.vx) > BLOCK_MIN_SPEED_PPS and self.y < BLOCK_MAX_HEIGHT:
             self.vy = max(self.vy, BLOCK_UP_SPEED_PPS)
 
+    def power_header(self):
+        # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림
+        self.vx *= POWER_SHOT_RATE
+
     def kicked(self, face_dir, power_rate, power_shot):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
         # power_shot: 파워슛이면 가로 속도를 크게 올림
