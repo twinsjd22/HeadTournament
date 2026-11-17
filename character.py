@@ -77,17 +77,19 @@ class Character:
             Character.images[char_type] = load_image(CHARACTER_TYPES[char_type]['sheet'])
         self.image = Character.images[char_type]
 
-        # 현재 캐릭터는 IDLE, RUN, JUMP, KICK 상태를 갖는다.
+        # 현재 캐릭터는 IDLE, RUN, JUMP, KICK, POWER 상태를 갖는다.
+        # POWER: 파워슛 킥 (파워형 필살 스킬을 준비한 뒤 Space)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
                 {'trigger': 'jump', 'source': ['IDLE', 'RUN'], 'dest': 'JUMP'},
                 {'trigger': 'land', 'source': 'JUMP', 'dest': 'IDLE'},
                 {'trigger': 'kick', 'source': ['IDLE', 'RUN'], 'dest': 'KICK'},
-                {'trigger': 'kick_end', 'source': 'KICK', 'dest': 'IDLE'},
+                {'trigger': 'power_kick', 'source': ['IDLE', 'RUN'], 'dest': 'POWER'},
+                {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
             ],
             initial='IDLE',
             auto_transitions=False,
@@ -105,6 +107,10 @@ class Character:
         self.frame = 0
         self.kick_hit = False
 
+    def on_enter_POWER(self):
+        self.frame = 0
+        self.kick_hit = False
+
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key == SDLK_UP:
             self.jump()
@@ -115,7 +121,11 @@ class Character:
             return
 
         if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
-            self.kick()
+            # 파워슛이 준비되어 있으면 파워슛 킥, 아니면 보통 킥
+            if self.power_shot:
+                self.power_kick()
+            else:
+                self.kick()
             return
 
         if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
@@ -164,7 +174,7 @@ class Character:
                 self.land()
                 if self.dir != 0:
                     self.move_start()
-        elif self.state == 'KICK':
+        elif self.state in ('KICK', 'POWER'):
             self.frame += KICK_FRAMES_PER_SECOND * game_framework.frame_time
             if self.frame >= 5:
                 self.kick_end()
@@ -212,7 +222,10 @@ class Character:
             self.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'KICK':
             self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+        elif self.state == 'POWER':
+            # 시트 맨 아래 줄(power)
+            self.image.clip_composite_draw(int(self.frame) * 256, 0 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
         draw_rectangle(*self.get_bb())
-        if self.state == 'KICK':
+        if self.state in ('KICK', 'POWER'):
             draw_circle(*self.get_foot(), 255, 0, 0)
