@@ -151,7 +151,8 @@ def update():
             # 공을 건드리면 스킬 게이지 증가
             character.touch_ball()
 
-        if character.state == 'KICK' and 2 <= int(character.frame) <= 4 and not character.kick_hit:
+        # 보통 킥과 파워슛 킥 모두 발을 뻗은 칸(2~4)에서 공을 참
+        if character.state in ('KICK', 'POWER') and 2 <= int(character.frame) <= 4 and not character.kick_hit:
             if collide_circle(character.get_foot(), ball.get_circle()):
                 ball.kicked(character.face_dir, character.kick_power_rate, character.power_shot)
                 # 파워슛은 한 번 차면 해제
