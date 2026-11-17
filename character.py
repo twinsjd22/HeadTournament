@@ -1,4 +1,4 @@
-from pico2d import load_image, clamp, draw_circle, draw_rectangle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE
+from pico2d import load_image, clamp, draw_circle, draw_rectangle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE, SDLK_z
 from transitions import Machine
 
 import game_framework
@@ -108,6 +108,10 @@ class Character:
             self.jump()
             return
 
+        if event.type == SDL_KEYDOWN and event.key == SDLK_z:
+            self.use_skill()
+            return
+
         if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
             self.kick()
             return
@@ -164,6 +168,13 @@ class Character:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
+
+    def use_skill(self):
+        # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
+        if self.gauge < GAUGE_MAX:
+            return
+        self.gauge = 0
+        print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
