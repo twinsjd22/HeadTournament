@@ -23,7 +23,12 @@ ROLL_STOP_SPEED_PPS = (ROLL_STOP_SPEED_MPS * PIXEL_PER_METER)
 ROLL_SPEED_KEEP_PER_SECOND = 0.4
 
 # 헤딩으로 튕겨 나가는 최소 속도
-HEADING_MIN_SPEED_MPS = 4.0
+HEADING_MIN_SPEED_MPS = 3.0
+# 헤딩으로 튕길 때 들어온 속도를 유지하는 비율 (낮을수록 공이 빨리 내려와 킥할 기회가 생김)
+HEADING_KEEP_RATE = 0.6
+# 헤딩한 선수가 바라보는 쪽으로 공을 더 밀어 주는 속도 (머리 위에서 계속 통통 튀지 않고 앞으로 나감)
+HEADING_FORWARD_MPS = 2.5
+HEADING_FORWARD_PPS = (HEADING_FORWARD_MPS * PIXEL_PER_METER)
 HEADING_MIN_SPEED_PPS = (HEADING_MIN_SPEED_MPS * PIXEL_PER_METER)
 # 점프 헤딩 때 공이 머리보다 이만큼 더 빨리 떠나게 함 (다시 맞지 않을 만큼만)
 HEADING_LEAVE_MARGIN_MPS = 0.5
@@ -133,13 +138,16 @@ class Ball:
         self.x = cx + nx * (r + 32)
         self.y = cy + ny * (r + 32)
 
-        speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * 0.8, HEADING_MIN_SPEED_PPS)
+        speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy) * HEADING_KEEP_RATE, HEADING_MIN_SPEED_PPS)
         # 머리가 공 쪽으로 올라가며 받으면, 공이 머리보다 조금 더 빨리 떠나게 함
         # (머리가 공을 다시 따라잡지 않아 한 번만 맞음)
         head_speed_to_ball = head_vy * ny
         if head_speed_to_ball > 0:
             speed = max(speed, head_speed_to_ball + HEADING_LEAVE_MARGIN_PPS)
         self.vx, self.vy = nx * speed, ny * speed
+        # 바라보는 쪽으로 공을 밀어 줌 (헤딩은 앞으로 보내는 동작)
+        self.vx += header.face_dir * HEADING_FORWARD_PPS
+
         # 올라가는 머리에 공이 붙어 있으면 공이 머리보다 빨리 위로 떠나게 함
         # (벽과 머리 사이에 낀 공이 머리와 같이 올라가며 계속 맞지 않게 함, 보통 헤딩에는 영향 없음)
         if stuck_on_head and head_vy > 0 and ny > 0:
