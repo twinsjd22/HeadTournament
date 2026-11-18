@@ -41,6 +41,17 @@ def collide_circle(a, b):
     return (ax - bx) ** 2 + (ay - by) ** 2 < (ar + br) ** 2
 
 
+def collide_box(a, b):
+    # 사각형끼리 충돌 (강의의 바운딩 박스 충돌 검사)
+    left_a, bottom_a, right_a, top_a = a
+    left_b, bottom_b, right_b, top_b = b
+    if left_a > right_b: return False
+    if right_a < left_b: return False
+    if top_a < bottom_b: return False
+    if bottom_a > top_b: return False
+    return True
+
+
 def collide_circle_box(c, bb):
     cx, cy, r = c
     left, bottom, right, top = bb
@@ -140,7 +151,7 @@ def update():
     # 두 선수가 너무 붙으면 서로 반씩 밀어냄 (공이 둘 사이에 끼어 갇히지 않게 함)
     # 트릭스터 중이거나 누가 넘어져 있으면 밀어내지 않음 (통과해 제치거나 넘어간 선수를 지나감)
     gap = opponent.x - player.x
-    no_push = any(c.state in ('TRICK', 'FALL') for c in (player, opponent))
+    no_push = any(c.state in ('TRICK', 'FALL', 'TACKLE') for c in (player, opponent))
     if not no_push and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
         # 원래 있던 쪽으로 밀고, 한 프레임에 밀어내는 거리는 최대 속도만큼으로 제한
         push = min((MIN_PLAYER_DISTANCE - gap * player_side) / 2, PLAYER_PUSH_SPEED_PPS * game_framework.frame_time)
@@ -149,6 +160,11 @@ def update():
     else:
         # 충분히 떨어져 있거나 한쪽이 높이 떠 있거나 트릭스터 중이면, 지금 위치로 어느 쪽인지 새로 정함
         player_side = 1 if gap >= 0 else -1
+
+    # 하드태클의 다리가 상대 몸에 닿으면 상대가 넘어짐 (점프 중이나 트릭스터 중에는 넘어지지 않음)
+    for character, other in ((player, opponent), (opponent, player)):
+        if character.state == 'TACKLE' and collide_box(character.get_tackle_bb(), other.get_bb()):
+            other.fall()
 
     # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음 (트릭스터 중이면 그 선수만)
     for character in ball_players():

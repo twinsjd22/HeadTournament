@@ -280,6 +280,12 @@ class Character:
         # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위
         return self.x - 18, self.y - 80, self.x + 18, self.y + 10
 
+    def get_tackle_bb(self):
+        # 하드태클로 뻗은 다리 영역 (바닥 가까이, 바라보는 쪽 앞): 왼쪽, 아래, 오른쪽, 위
+        if self.face_dir == 1:
+            return self.x - 20, self.y - 80, self.x + 75, self.y - 30
+        return self.x - 75, self.y - 80, self.x + 20, self.y - 30
+
     def get_foot(self):
         return self.x + self.face_dir * 37, self.y - 22, 20
 
@@ -309,3 +315,5 @@ class Character:
         draw_rectangle(*self.get_bb())
         if self.state in ('KICK', 'POWER'):
             draw_circle(*self.get_foot(), 255, 0, 0)
+        if self.state == 'TACKLE':
+            draw_rectangle(*self.get_tackle_bb())
