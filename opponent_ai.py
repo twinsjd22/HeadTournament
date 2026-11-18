@@ -2,6 +2,7 @@ import math
 
 import play_mode
 from ball import GRAVITY_PPS2
+from character import GAUGE_MAX
 
 # 공과 가로 거리가 이보다 멀면 공 쪽으로 움직이기 시작
 FOLLOW_START_DISTANCE = 30
@@ -26,6 +27,9 @@ BEHIND_DISTANCE = 50
 JUMP_OVER_DISTANCE = 90
 # 높은 공은 공보다 이만큼 오른쪽에 서서, 공이 머리 왼쪽에 맞아 플레이어 쪽으로 튕기게 함
 HEADING_OFFSET = 20
+# 필살 스킬: 게이지가 가득 차고 공이 바라보는 쪽 앞 이 거리 안에 낮게 있으면 사용
+SKILL_DISTANCE = 150
+
 # 서 있는 선수의 머리 높이 (높은 공이 이 높이까지 떨어질 자리를 예측함)
 HEAD_HEIGHT = 230
 
@@ -91,7 +95,15 @@ class OpponentAI:
         # 규칙 3: 공이 발 앞에 있으면 킥 (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
         front = dx * self.character.face_dir
         if self.character.face_dir == -1 and KICK_MIN_DISTANCE < front < KICK_MAX_DISTANCE and ball.y < KICK_MAX_HEIGHT:
-            self.character.kick()
+            # 파워슛이 준비되어 있으면 파워슛 동작으로 참 (키보드의 Space와 같음)
+            if self.character.power_shot:
+                self.character.power_kick()
+            else:
+                self.character.kick()
+
+        # 규칙 5: 게이지가 가득 차고 공이 앞에 낮게 있으면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만)
+        if self.character.gauge >= GAUGE_MAX and self.character.face_dir == -1 and 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
+            self.character.use_skill()
 
     def draw(self):
         pass
