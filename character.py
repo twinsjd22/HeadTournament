@@ -250,6 +250,19 @@ class Character:
                 if self.dir != 0:
                     self.move_start()
 
+    def reset(self, x, face_dir):
+        # 득점 후 처음 자리로 돌아감
+        # 하던 동작(태클, 넘어짐, 트릭스터, 킥 등)도 끝내고 서 있는 상태에서 다시 시작
+        self.x, self.y = x, 160
+        self.vy = 0
+        self.face_dir = face_dir
+        self.frame = 0
+        self.machine.set_state('IDLE')
+        # 방향키를 누르고 있었다면 바로 달림
+        if self.dir != 0:
+            self.face_dir = self.dir
+            self.move_start()
+
     def use_skill(self):
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
         if self.gauge < GAUGE_MAX:

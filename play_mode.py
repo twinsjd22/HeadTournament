@@ -73,11 +73,9 @@ def ball_players():
 
 
 def reset_positions():
-    # 득점 후 선수와 공을 처음 자리로 되돌림
-    player.x, player.y = 320, 160
-    player.vy = 0
-    opponent.x, opponent.y = 960, 160
-    opponent.vy = 0
+    # 득점 후 선수와 공을 처음 자리로 되돌림 (선수는 하던 동작도 끝냄)
+    player.reset(320, 1)
+    opponent.reset(960, -1)
     ball.x, ball.y = 640, 400
     ball.vx, ball.vy = 0, 0
 
