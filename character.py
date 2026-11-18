@@ -50,6 +50,11 @@ TRICK_TIME = 1.0
 # 트릭스터 애니메이션 (trick 줄 5칸을 1초에 두 번 반복)
 TRICK_FRAMES_PER_SECOND = 10.0
 
+# 넘어짐: 이 시간(초) 동안 쓰러져 있다가 일어남
+FALL_TIME = 1.2
+# 넘어짐 애니메이션 (fall 줄 4칸을 넘어가며 보여 주고 마지막 칸에서 누워 있음)
+FALL_FRAMES_PER_SECOND = 10.0
+
 
 class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
@@ -85,9 +90,10 @@ class Character:
         # 현재 캐릭터는 IDLE, RUN, JUMP, KICK, POWER 상태를 갖는다.
         # POWER: 파워슛 킥 (파워형 필살 스킬을 준비한 뒤 Space)
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
+        # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -97,6 +103,8 @@ class Character:
                 {'trigger': 'power_kick', 'source': ['IDLE', 'RUN'], 'dest': 'POWER'},
                 {'trigger': 'trick', 'source': ['IDLE', 'RUN'], 'dest': 'TRICK'},
                 {'trigger': 'trick_end', 'source': 'TRICK', 'dest': 'IDLE'},
+                {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER'], 'dest': 'FALL'},
+                {'trigger': 'get_up', 'source': 'FALL', 'dest': 'IDLE'},
                 {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
             ],
             initial='IDLE',
@@ -118,6 +126,10 @@ class Character:
     def on_enter_TRICK(self):
         self.frame = 0
         self.trick_time = TRICK_TIME
+
+    def on_enter_FALL(self):
+        self.frame = 0
+        self.fall_time = FALL_TIME
 
     def on_enter_POWER(self):
         self.frame = 0
@@ -202,6 +214,14 @@ class Character:
                 self.trick_end()
                 if self.dir != 0:
                     self.move_start()
+        elif self.state == 'FALL':
+            # 쓰러지는 4칸을 보여 준 뒤 마지막 칸(누운 모습)에서 멈춰 있음
+            self.frame = min(self.frame + FALL_FRAMES_PER_SECOND * game_framework.frame_time, 3)
+            self.fall_time -= game_framework.frame_time
+            if self.fall_time <= 0:
+                self.get_up()
+                if self.dir != 0:
+                    self.move_start()
 
     def use_skill(self):
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
@@ -246,6 +266,9 @@ class Character:
             self.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'KICK':
             self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+        elif self.state == 'FALL':
+            # 시트 5번 줄(fall)
+            self.image.clip_composite_draw(int(self.frame) * 256, 2 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'TRICK':
             # 시트 6번 줄(trick)
             self.image.clip_composite_draw(int(self.frame) * 256, 1 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
