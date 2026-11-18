@@ -11,6 +11,9 @@ PIXEL_PER_METER = (150.0 / 1.75)
 GRAVITY_MPS2 = 9.8
 GRAVITY_PPS2 = (GRAVITY_MPS2 * PIXEL_PER_METER)
 
+# 바닥에 튕길 때 남는 속도의 비율 (낮을수록 공이 금방 땅에 깔려 킥하기 좋음)
+GROUND_BOUNCE_RATE = 0.5
+
 # 바닥에 튕길 때 이 속도보다 느리면 더 튀지 않고 멈춤
 BOUNCE_STOP_SPEED_MPS = 3.0
 BOUNCE_STOP_SPEED_PPS = (BOUNCE_STOP_SPEED_MPS * PIXEL_PER_METER)
@@ -93,7 +96,7 @@ class Ball:
 
         if self.y - 32 < 80:
             self.y = 80 + 32
-            self.vy = -self.vy * 0.7
+            self.vy = -self.vy * GROUND_BOUNCE_RATE
             if self.vy < BOUNCE_STOP_SPEED_PPS:
                 self.vy = 0
 
