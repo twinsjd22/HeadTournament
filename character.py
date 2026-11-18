@@ -254,6 +254,10 @@ class Character:
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
         if self.gauge < GAUGE_MAX:
             return
+        # 태클과 트릭스터는 서 있거나 달릴 때만 나가므로, 그 밖의 상태에서는 게이지를 쓰지 않음
+        # (파워슛은 준비만 하는 것이라 언제든 가능)
+        if self.char_type != 'power' and self.state not in ('IDLE', 'RUN'):
+            return
         self.gauge = 0
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
         if self.char_type == 'power':
