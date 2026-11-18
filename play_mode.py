@@ -50,6 +50,16 @@ def collide_circle_box(c, bb):
     return (cx - px) ** 2 + (cy - py) ** 2 < r ** 2
 
 
+def ball_players():
+    # 공과 부딪힐 수 있는 선수들
+    # 한 선수가 트릭스터 중이면 공은 그 선수에게만 반응함 (상대는 공과 부딪히지 않음)
+    if player.state == 'TRICK':
+        return (player,)
+    if opponent.state == 'TRICK':
+        return (opponent,)
+    return (player, opponent)
+
+
 def reset_positions():
     # 득점 후 선수와 공을 처음 자리로 되돌림
     player.x, player.y = 320, 160
@@ -127,18 +137,20 @@ def update():
     game_world.update()
 
     # 두 선수가 너무 붙으면 서로 반씩 밀어냄 (공이 둘 사이에 끼어 갇히지 않게 함)
+    # 트릭스터 중에는 밀어내지 않아서 상대를 통과해 제칠 수 있음
     gap = opponent.x - player.x
-    if abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
+    tricking = player.state == 'TRICK' or opponent.state == 'TRICK'
+    if not tricking and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
         # 원래 있던 쪽으로 밀고, 한 프레임에 밀어내는 거리는 최대 속도만큼으로 제한
         push = min((MIN_PLAYER_DISTANCE - gap * player_side) / 2, PLAYER_PUSH_SPEED_PPS * game_framework.frame_time)
         player.x = clamp(50, player.x - player_side * push, 1280 - 50)
         opponent.x = clamp(50, opponent.x + player_side * push, 1280 - 50)
     else:
-        # 충분히 떨어져 있거나 한쪽이 높이 떠 있으면, 지금 위치로 어느 쪽인지 새로 정함
+        # 충분히 떨어져 있거나 한쪽이 높이 떠 있거나 트릭스터 중이면, 지금 위치로 어느 쪽인지 새로 정함
         player_side = 1 if gap >= 0 else -1
 
-    # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음
-    for character in (player, opponent):
+    # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음 (트릭스터 중이면 그 선수만)
+    for character in ball_players():
         if ball.head_ignore == 0 and collide_circle(character.get_head(), ball.get_circle()):
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
             head_vy = character.vy if character.state == 'JUMP' else 0
@@ -168,8 +180,8 @@ def update():
                 # 공을 건드리면 스킬 게이지 증가
                 character.touch_ball()
 
-    # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음)
-    for character in (player, opponent):
+    # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음, 트릭스터 중이면 그 선수만)
+    for character in ball_players():
         if collide_circle_box(ball.get_circle(), character.get_bb()):
             ball.bounce_from_box(*character.get_bb())
             ball.blocked()
