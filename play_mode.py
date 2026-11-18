@@ -134,7 +134,8 @@ def init():
 
 
 def finish():
-    pass
+    # 경기 화면을 떠날 때 world를 비워서, 다시 들어와도 객체가 겹쳐 쌓이지 않게 함
+    game_world.clear()
 
 
 def update():

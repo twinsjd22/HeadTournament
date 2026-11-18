@@ -32,3 +32,9 @@ def render():
     for layer in world:
         for o in layer:
             o.draw()
+
+
+def clear():
+    # 모든 레이어의 객체를 비움 (모드가 끝날 때 다음 모드를 위해 정리)
+    for layer in world:
+        layer.clear()
