@@ -57,7 +57,8 @@ def ball_players():
         return (player,)
     if opponent.state == 'TRICK':
         return (opponent,)
-    return (player, opponent)
+    # 넘어져 누워 있는 선수는 공과 부딪히지 않음
+    return tuple(c for c in (player, opponent) if c.state != 'FALL')
 
 
 def reset_positions():
@@ -137,10 +138,10 @@ def update():
     game_world.update()
 
     # 두 선수가 너무 붙으면 서로 반씩 밀어냄 (공이 둘 사이에 끼어 갇히지 않게 함)
-    # 트릭스터 중에는 밀어내지 않아서 상대를 통과해 제칠 수 있음
+    # 트릭스터 중이거나 누가 넘어져 있으면 밀어내지 않음 (통과해 제치거나 넘어간 선수를 지나감)
     gap = opponent.x - player.x
-    tricking = player.state == 'TRICK' or opponent.state == 'TRICK'
-    if not tricking and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
+    no_push = any(c.state in ('TRICK', 'FALL') for c in (player, opponent))
+    if not no_push and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
         # 원래 있던 쪽으로 밀고, 한 프레임에 밀어내는 거리는 최대 속도만큼으로 제한
         push = min((MIN_PLAYER_DISTANCE - gap * player_side) / 2, PLAYER_PUSH_SPEED_PPS * game_framework.frame_time)
         player.x = clamp(50, player.x - player_side * push, 1280 - 50)
