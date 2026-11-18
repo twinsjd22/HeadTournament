@@ -73,7 +73,11 @@ def ball_players():
 
 
 def reset_positions():
+    global player_side
+
     # 득점 후 선수와 공을 처음 자리로 되돌림 (선수는 하던 동작도 끝냄)
+    # 플레이어가 다시 왼쪽에 서므로 어느 쪽인지도 처음 값으로
+    player_side = 1
     player.reset(320, 1)
     opponent.reset(960, -1)
     ball.x, ball.y = 640, 400
@@ -151,7 +155,8 @@ def update():
     # 트릭스터 중이거나 누가 넘어져 있으면 밀어내지 않음 (통과해 제치거나 넘어간 선수를 지나감)
     gap = opponent.x - player.x
     no_push = any(c.state in ('TRICK', 'FALL', 'TACKLE') for c in (player, opponent))
-    if not no_push and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
+    # 실제로 가까이 붙어 있을 때만 밀어냄 (멀리 떨어져 있으면 순서와 관계없이 밀지 않음)
+    if not no_push and abs(gap) < MIN_PLAYER_DISTANCE and abs(player.y - opponent.y) < PLAYER_OVERLAP_HEIGHT and gap * player_side < MIN_PLAYER_DISTANCE:
         # 원래 있던 쪽으로 밀고, 한 프레임에 밀어내는 거리는 최대 속도만큼으로 제한
         push = min((MIN_PLAYER_DISTANCE - gap * player_side) / 2, PLAYER_PUSH_SPEED_PPS * game_framework.frame_time)
         player.x = clamp(50, player.x - player_side * push, 1280 - 50)
