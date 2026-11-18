@@ -45,6 +45,11 @@ RUN_FRAMES_PER_SECOND = RUN_SPEED_MPS / STRIDE_LENGTH_M * RUN_FRAMES_PER_STRIDE
 # 킥 애니메이션 (지금 속도와 같게)
 KICK_FRAMES_PER_SECOND = 17.0
 
+# 트릭스터: 이 시간(초) 동안 개인기 동작으로 움직임
+TRICK_TIME = 1.0
+# 트릭스터 애니메이션 (trick 줄 5칸을 1초에 두 번 반복)
+TRICK_FRAMES_PER_SECOND = 10.0
+
 
 class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
@@ -79,9 +84,10 @@ class Character:
 
         # 현재 캐릭터는 IDLE, RUN, JUMP, KICK, POWER 상태를 갖는다.
         # POWER: 파워슛 킥 (파워형 필살 스킬을 준비한 뒤 Space)
+        # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -89,6 +95,8 @@ class Character:
                 {'trigger': 'land', 'source': 'JUMP', 'dest': 'IDLE'},
                 {'trigger': 'kick', 'source': ['IDLE', 'RUN'], 'dest': 'KICK'},
                 {'trigger': 'power_kick', 'source': ['IDLE', 'RUN'], 'dest': 'POWER'},
+                {'trigger': 'trick', 'source': ['IDLE', 'RUN'], 'dest': 'TRICK'},
+                {'trigger': 'trick_end', 'source': 'TRICK', 'dest': 'IDLE'},
                 {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
             ],
             initial='IDLE',
@@ -106,6 +114,10 @@ class Character:
     def on_enter_KICK(self):
         self.frame = 0
         self.kick_hit = False
+
+    def on_enter_TRICK(self):
+        self.frame = 0
+        self.trick_time = TRICK_TIME
 
     def on_enter_POWER(self):
         self.frame = 0
@@ -180,6 +192,16 @@ class Character:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
+        elif self.state == 'TRICK':
+            # 개인기 동작으로 달리기와 같은 속도로 좌우 이동
+            self.frame = (self.frame + TRICK_FRAMES_PER_SECOND * game_framework.frame_time) % 5
+            self.x += self.dir * self.run_speed_pps * game_framework.frame_time
+            self.x = clamp(50, self.x, 1280 - 50)
+            self.trick_time -= game_framework.frame_time
+            if self.trick_time <= 0:
+                self.trick_end()
+                if self.dir != 0:
+                    self.move_start()
 
     def use_skill(self):
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
@@ -189,6 +211,8 @@ class Character:
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
         if self.char_type == 'power':
             self.power_shot = True
+        elif self.char_type == 'trickster':
+            self.trick()
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
@@ -222,6 +246,9 @@ class Character:
             self.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'KICK':
             self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+        elif self.state == 'TRICK':
+            # 시트 6번 줄(trick)
+            self.image.clip_composite_draw(int(self.frame) * 256, 1 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
         elif self.state == 'POWER':
             # 시트 맨 아래 줄(power)
             self.image.clip_composite_draw(int(self.frame) * 256, 0 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
