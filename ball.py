@@ -48,6 +48,7 @@ PINGPONG_COUNT = 2         # 왕복이 이만큼 되면 위로 튀김
 PINGPONG_UP_SPEED_MPS = 10.0
 PINGPONG_UP_SPEED_PPS = (PINGPONG_UP_SPEED_MPS * PIXEL_PER_METER)
 HEAD_IGNORE_TIME = 0.15    # 위로 튄 직후 이 시간 동안은 머리에 맞지 않음 (빠져나가는 중)
+HEAD_STUCK_TIME = 0.05     # 같은 머리에 이 시간 안에 또 맞으면 공이 머리에 붙어 있는 것으로 봄
 
 # 파워슛: 가로 속도만 이만큼 세게 해서 낮고 빠르게 날아감
 POWER_SHOT_RATE = 2.0
@@ -112,6 +113,9 @@ class Ball:
         # head_vy: 머리가 위아래로 움직이는 속도 (점프 중이 아니면 0)
         # header: 헤딩한 선수 (머리 사이 왕복 판정용)
 
+        # 같은 선수 머리에 아주 짧은 시간 안에 또 맞았으면, 공이 머리에 붙어 같이 움직이는 것
+        stuck_on_head = self.last_header is header and self.time_since_head < HEAD_STUCK_TIME
+
         # 방금 다른 선수 머리에 맞았던 공이면 왕복 횟수 증가, 아니면 처음부터
         if self.last_header is not None and self.last_header is not header and self.time_since_head < PINGPONG_TIME:
             self.pingpong += 1
@@ -136,6 +140,10 @@ class Ball:
         if head_speed_to_ball > 0:
             speed = max(speed, head_speed_to_ball + HEADING_LEAVE_MARGIN_PPS)
         self.vx, self.vy = nx * speed, ny * speed
+        # 올라가는 머리에 공이 붙어 있으면 공이 머리보다 빨리 위로 떠나게 함
+        # (벽과 머리 사이에 낀 공이 머리와 같이 올라가며 계속 맞지 않게 함, 보통 헤딩에는 영향 없음)
+        if stuck_on_head and head_vy > 0 and ny > 0:
+            self.vy = max(self.vy, head_vy + HEADING_LEAVE_MARGIN_PPS)
 
         # 머리 사이에서 왕복이 계속되면 위로 크게 튀어 빠져나감
         if self.pingpong >= PINGPONG_COUNT:
