@@ -52,6 +52,12 @@ HEAD_IGNORE_TIME = 0.15    # 위로 튄 직후 이 시간 동안은 머리에 �
 # 파워슛: 가로 속도만 이만큼 세게 해서 낮고 빠르게 날아감
 POWER_SHOT_RATE = 2.0
 
+# 하드태클에 쓸려 나가는 공의 속도 (가로, 세로)
+TACKLE_SWEEP_X_MPS = 8.0
+TACKLE_SWEEP_X_PPS = (TACKLE_SWEEP_X_MPS * PIXEL_PER_METER)
+TACKLE_SWEEP_Y_MPS = 2.0
+TACKLE_SWEEP_Y_PPS = (TACKLE_SWEEP_Y_MPS * PIXEL_PER_METER)
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -162,6 +168,11 @@ class Ball:
         # 빠른 낮은 공이 몸에 막히면 위로 튀어 오름 (가까이서 서로 차며 갇히지 않게 함)
         if abs(self.vx) > BLOCK_MIN_SPEED_PPS and self.y < BLOCK_MAX_HEIGHT:
             self.vy = max(self.vy, BLOCK_UP_SPEED_PPS)
+
+    def swept(self, face_dir):
+        # 하드태클에 쓸려 진행 방향으로 낮고 빠르게 굴러감
+        self.vx = face_dir * TACKLE_SWEEP_X_PPS
+        self.vy = TACKLE_SWEEP_Y_PPS
 
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림

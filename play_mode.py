@@ -63,10 +63,10 @@ def collide_circle_box(c, bb):
 
 def ball_players():
     # 공과 부딪힐 수 있는 선수들
-    # 한 선수가 트릭스터 중이면 공은 그 선수에게만 반응함 (상대는 공과 부딪히지 않음)
-    if player.state == 'TRICK':
+    # 한 선수가 트릭스터나 하드태클 중이면 공은 그 선수에게만 반응함 (상대는 공과 부딪히지 않음)
+    if player.state in ('TRICK', 'TACKLE'):
         return (player,)
-    if opponent.state == 'TRICK':
+    if opponent.state in ('TRICK', 'TACKLE'):
         return (opponent,)
     # 넘어져 누워 있는 선수는 공과 부딪히지 않음
     return tuple(c for c in (player, opponent) if c.state != 'FALL')
@@ -168,6 +168,15 @@ def update():
 
     # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음 (트릭스터 중이면 그 선수만)
     for character in ball_players():
+        # 하드태클 중에는 뻗은 다리로만 공을 쓸어 감 (서 있는 자세의 머리, 발 충돌은 없음)
+        if character.state == 'TACKLE':
+            if not character.kick_hit and collide_circle_box(ball.get_circle(), character.get_tackle_bb()):
+                ball.swept(character.face_dir)
+                character.kick_hit = True
+                game_world.add_object(HitEffect(ball.x, ball.y), 1)
+                character.touch_ball()
+            continue
+
         if ball.head_ignore == 0 and collide_circle(character.get_head(), ball.get_circle()):
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
             head_vy = character.vy if character.state == 'JUMP' else 0
@@ -199,7 +208,7 @@ def update():
 
     # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음, 트릭스터 중이면 그 선수만)
     for character in ball_players():
-        if collide_circle_box(ball.get_circle(), character.get_bb()):
+        if character.state != 'TACKLE' and collide_circle_box(ball.get_circle(), character.get_bb()):
             ball.bounce_from_box(*character.get_bb())
             ball.blocked()
 

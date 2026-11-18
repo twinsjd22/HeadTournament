@@ -140,6 +140,8 @@ class Character:
     def on_enter_TACKLE(self):
         self.frame = 0
         self.tackle_time = TACKLE_TIME
+        # 태클 한 번에 공은 한 번만 쓸어 감
+        self.kick_hit = False
 
     def on_enter_FALL(self):
         self.frame = 0
