@@ -49,6 +49,8 @@ KICK_FRAMES_PER_SECOND = 17.0
 TRICK_TIME = 1.0
 # 트릭스터 애니메이션 (trick 줄 5칸을 1초에 두 번 반복)
 TRICK_FRAMES_PER_SECOND = 10.0
+# 트릭스터 돌진 속도: 달리기 속도의 이 배율 (1초 동안 상대를 확실히 지나감)
+TRICK_SPEED_RATE = 1.5
 
 # 하드태클: 바라보는 방향으로 이 속도로 미끄러져 나가며 점점 느려짐
 TACKLE_SPEED_MPS = 7.0
@@ -136,6 +138,8 @@ class Character:
     def on_enter_TRICK(self):
         self.frame = 0
         self.trick_time = TRICK_TIME
+        # 돌진 방향은 시작할 때 바라보던 쪽으로 고정 (도중에 방향키를 눌러도 돌아서지 않음)
+        self.trick_dir = self.face_dir
 
     def on_enter_TACKLE(self):
         self.frame = 0
@@ -221,14 +225,17 @@ class Character:
                 if self.dir != 0:
                     self.move_start()
         elif self.state == 'TRICK':
-            # 개인기 동작으로 달리기와 같은 속도로 좌우 이동
+            # 방향키와 상관없이 바라보는 쪽으로 달리기보다 빠르게 돌진 (상대를 뚫고 지나감)
             self.frame = (self.frame + TRICK_FRAMES_PER_SECOND * game_framework.frame_time) % 5
-            self.x += self.dir * self.run_speed_pps * game_framework.frame_time
+            self.face_dir = self.trick_dir
+            self.x += self.face_dir * self.run_speed_pps * TRICK_SPEED_RATE * game_framework.frame_time
             self.x = clamp(50, self.x, 1280 - 50)
             self.trick_time -= game_framework.frame_time
             if self.trick_time <= 0:
                 self.trick_end()
+                # 끝나면 누르고 있던 방향키 쪽으로 다시 달림
                 if self.dir != 0:
+                    self.face_dir = self.dir
                     self.move_start()
         elif self.state == 'TACKLE':
             # 바라보는 방향으로 미끄러지며, 남은 시간에 비례해 점점 느려짐
