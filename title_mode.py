@@ -3,6 +3,7 @@
 from pico2d import *
 
 import game_framework
+import loading_mode
 import play_mode
 
 # 메뉴 글자 (위에서부터 이 순서로 버튼을 놓음)
@@ -84,8 +85,10 @@ def handle_events():
                 selected = min(selected + 1, len(MENUS) - 1)
             elif event.key in (SDLK_SPACE, SDLK_RETURN):
                 if MENUS[selected] == '게임 시작':
-                    # 지금은 바로 경기로 (로딩, 선택 화면이 생기면 그쪽으로 바꿈)
-                    game_framework.change_mode(play_mode)
+                    # 로딩 화면에서 경기 리소스를 미리 불러온 뒤 경기로 (선택 화면이 생기면 그 사이에 넣음)
+                    loading_mode.next_mode = play_mode
+                    loading_mode.tasks = play_mode.preload_tasks()
+                    game_framework.change_mode(loading_mode)
                 else:
                     game_framework.quit()
 

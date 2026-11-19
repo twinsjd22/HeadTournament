@@ -13,6 +13,7 @@ from timer_board import TimerBoard
 from match import Match
 from opponent_ai import OpponentAI
 from gauge_board import GaugeBoard
+from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
 MIN_PLAYER_DISTANCE = 140
@@ -35,6 +36,17 @@ player_side = 1
 match = None
 # P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
 paused = False
+
+
+def preload_tasks():
+    # 로딩 화면에서 미리 할 일 목록: 객체를 한 번씩 만들어 보면 각 클래스가 공유 이미지와 글꼴을 불러 둠
+    # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
+    tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
+             ScoreBoard, TimerBoard, lambda: GaugeBoard(None, 'left')]
+    # 선수 시트는 유형마다 한 장씩
+    for key in CHARACTER_TYPES:
+        tasks.append(lambda key=key: Character(key, 0, 1))
+    return tasks
 
 
 def collide_circle(a, b):
