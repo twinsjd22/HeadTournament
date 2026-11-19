@@ -2,12 +2,19 @@
 # 능력치는 1~5 단계, 기획서 초안 값 (플레이 테스트로 조정)
 # 점프 높이는 모든 유형이 같으므로 능력치에 넣지 않음
 # 신규 유형은 같은 모양으로 한 줄씩 추가
+# portrait, desc: 선택 화면의 슬롯 초상화와 필살기 설명 한 줄
 
 CHARACTER_TYPES = {
     'defender': {'name': '수비형', 'sheet': 'resource/sheet_defender.png',
-                 'speed': 5, 'power': 3, 'skill': '하드태클'},
+                 'portrait': 'resource/portrait_defender.png',
+                 'speed': 5, 'power': 3, 'skill': '하드태클',
+                 'desc': '공을 빼앗고 상대를 넘어뜨린다'},
     'trickster': {'name': '개인기형', 'sheet': 'resource/sheet_trickster.png',
-                  'speed': 4, 'power': 2, 'skill': '트릭스터'},
+                  'portrait': 'resource/portrait_trickster.png',
+                  'speed': 4, 'power': 2, 'skill': '트릭스터',
+                  'desc': '부딪혀도 공을 뺏기지 않는다'},
     'power': {'name': '파워형', 'sheet': 'resource/sheet_power.png',
-              'speed': 2, 'power': 5, 'skill': '파워슛'},
+              'portrait': 'resource/portrait_power.png',
+              'speed': 2, 'power': 5, 'skill': '파워슛',
+              'desc': '공을 아주 강하게 찬다'},
 }
