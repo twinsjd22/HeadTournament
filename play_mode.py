@@ -172,6 +172,12 @@ def update():
         if character.state == 'TACKLE' and collide_box(character.get_tackle_bb(), other.get_bb()):
             other.fall()
 
+    # 트릭스터가 끝났으면 몰고 가던 공을 돌진하던 쪽으로 살짝 밀어 놓음
+    for character in (player, opponent):
+        if character.dribble and character.state != 'TRICK':
+            ball.released(character.trick_dir)
+            character.dribble = False
+
     # 두 선수 모두 헤딩과 킥으로 공을 칠 수 있음 (트릭스터 중이면 그 선수만)
     for character in ball_players():
         # 하드태클 중에는 뻗은 다리로만 공을 쓸어 감 (서 있는 자세의 머리, 발 충돌은 없음)

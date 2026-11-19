@@ -67,6 +67,10 @@ TACKLE_SWEEP_X_PPS = (TACKLE_SWEEP_X_MPS * PIXEL_PER_METER)
 TACKLE_SWEEP_Y_MPS = 2.0
 TACKLE_SWEEP_Y_PPS = (TACKLE_SWEEP_Y_MPS * PIXEL_PER_METER)
 
+# 트릭스터가 끝날 때 몰고 가던 공을 앞으로 밀어 놓는 속도 (140px 정도 굴러감)
+TRICK_RELEASE_SPEED_MPS = 1.5
+TRICK_RELEASE_SPEED_PPS = (TRICK_RELEASE_SPEED_MPS * PIXEL_PER_METER)
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -199,6 +203,11 @@ class Ball:
         self.x = clamp(32, x, 1280 - 32)
         self.y = 80 + 32
         self.vx, self.vy = vx, 0
+
+    def released(self, face_dir):
+        # 트릭스터가 끝나면 몰고 가던 공을 앞으로 살짝 밀어 놓음 (바로 슛이 되지 않음)
+        self.vx = face_dir * TRICK_RELEASE_SPEED_PPS
+        self.vy = 0
 
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림

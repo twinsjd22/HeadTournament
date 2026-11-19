@@ -92,6 +92,8 @@ class Character:
         self.power_shot = False
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
+        # 트릭스터로 공을 몰고 가는 중인지
+        self.dribble = False
         if char_type not in Character.images:
             Character.images[char_type] = load_image(CHARACTER_TYPES[char_type]['sheet'])
         self.image = Character.images[char_type]
@@ -264,6 +266,8 @@ class Character:
         # 하던 동작(태클, 넘어짐, 트릭스터, 킥 등)도 끝내고 서 있는 상태에서 다시 시작
         self.x, self.y = x, 160
         self.vy = 0
+        # 몰고 가던 공도 놓음 (되돌린 공이 다시 밀려나지 않게 함)
+        self.dribble = False
         self.face_dir = face_dir
         self.frame = 0
         self.machine.set_state('IDLE')
