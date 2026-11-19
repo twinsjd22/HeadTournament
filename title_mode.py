@@ -8,19 +8,45 @@ import play_mode
 # 메뉴 글자 (위에서부터 이 순서로 버튼을 놓음)
 MENUS = ('게임 시작', '종료')
 
+# 첫 번째 버튼 위치와 버튼 사이 간격 (로고는 배경 그림에 들어 있음)
+BUTTON_X, BUTTON_Y = 640, 250
+BUTTON_GAP = 90
+# 버튼 글자 크기
+FONT_SIZE = 32
+
 # 지금 고르고 있는 메뉴 번호 (MENUS 안의 위치)
 selected = 0
+background = None
+button_normal = None
+button_selected = None
+font = None
+
+
+def draw_center(text, x, y):
+    # font.draw는 x가 글자의 왼쪽 끝이므로, 글자 폭을 어림해서 가운데에 오게 함
+    # (한글은 글자 크기만큼, 띄어쓰기는 그 절반 정도 폭)
+    width = sum(FONT_SIZE if ord(c) > 127 else FONT_SIZE * 0.5 for c in text)
+    font.draw(x - width / 2, y, text, (255, 255, 255))
 
 
 def init():
-    global selected
+    global selected, background, button_normal, button_selected, font
 
     # 화면에 들어올 때마다 "게임 시작"부터
     selected = 0
+    background = load_image('resource/title_screen.png')
+    button_normal = load_image('resource/btn_normal.png')
+    button_selected = load_image('resource/btn_selected.png')
+    font = load_font('resource/BlackHanSans-Regular.ttf', FONT_SIZE)
 
 
 def finish():
-    pass
+    global background, button_normal, button_selected, font
+
+    # 메인 화면에서만 쓰는 이미지와 글꼴을 놓아 줌
+    background = None
+    button_normal = button_selected = None
+    font = None
 
 
 def update():
@@ -28,7 +54,17 @@ def update():
 
 
 def draw():
-    pass
+    clear_canvas()
+    background.draw(640, 360)
+    # 버튼을 위에서부터 놓고, 고른 버튼만 주황색
+    for i, menu in enumerate(MENUS):
+        y = BUTTON_Y - i * BUTTON_GAP
+        if i == selected:
+            button_selected.draw(BUTTON_X, y)
+        else:
+            button_normal.draw(BUTTON_X, y)
+        draw_center(menu, BUTTON_X, y)
+    update_canvas()
 
 
 def handle_events():
