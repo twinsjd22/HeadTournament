@@ -193,6 +193,13 @@ class Ball:
         self.vx = face_dir * TACKLE_SWEEP_X_PPS
         self.vy = TACKLE_SWEEP_Y_PPS
 
+    def dribbled(self, x, vx):
+        # 트릭스터 발 앞에 붙어 바닥으로 같이 굴러감
+        # x: 붙을 가로 위치, vx: 선수가 움직이는 속도 (공 회전 애니메이션용)
+        self.x = clamp(32, x, 1280 - 32)
+        self.y = 80 + 32
+        self.vx, self.vy = vx, 0
+
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림
         self.vx *= POWER_SHOT_RATE

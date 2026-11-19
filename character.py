@@ -140,6 +140,8 @@ class Character:
         self.trick_time = TRICK_TIME
         # 돌진 방향은 시작할 때 바라보던 쪽으로 고정 (도중에 방향키를 눌러도 돌아서지 않음)
         self.trick_dir = self.face_dir
+        # 공을 발 앞에 붙여 몰고 가는 중인지 (트릭 도중 공에 닿으면 붙음)
+        self.dribble = False
 
     def on_enter_TACKLE(self):
         self.frame = 0

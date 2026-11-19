@@ -4,7 +4,7 @@ import game_framework
 import game_world
 from background import Background
 from ground import Ground
-from character import Character, GAUGE_SCORE, GAUGE_CONCEDE
+from character import Character, GAUGE_SCORE, GAUGE_CONCEDE, TRICK_SPEED_RATE
 from ball import Ball
 from goal import Goal
 from hit_effect import HitEffect
@@ -22,6 +22,8 @@ PLAYER_OVERLAP_HEIGHT = 90
 POWER_EFFECT_SIZE = 256
 # 밀어내는 최대 속도 (한 번에 확 밀려 순간이동처럼 보이지 않게 함)
 PLAYER_PUSH_SPEED_PPS = 400
+# 트릭스터가 공을 몰고 갈 때 선수 중심에서 공 중심까지의 가로 거리 (몸 반폭 18 + 공 반지름 32 + 여유)
+DRIBBLE_DISTANCE = 54
 
 player = None
 opponent = None
@@ -180,6 +182,16 @@ def update():
                 game_world.add_object(HitEffect(ball.x, ball.y), 1)
                 character.touch_ball()
             continue
+
+        # 트릭스터 중 낮은 공이 몸이나 발에 닿으면 발 앞에 붙여 몰고 감 (머리, 킥 충돌은 없음)
+        if character.state == 'TRICK':
+            if not character.dribble and (collide_circle_box(ball.get_circle(), character.get_bb()) or collide_circle(character.get_foot(), ball.get_circle())):
+                character.dribble = True
+                character.touch_ball()
+            if character.dribble:
+                trick_vx = character.face_dir * character.run_speed_pps * TRICK_SPEED_RATE
+                ball.dribbled(character.x + character.face_dir * DRIBBLE_DISTANCE, trick_vx)
+                continue
 
         if ball.head_ignore == 0 and collide_circle(character.get_head(), ball.get_circle()):
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
