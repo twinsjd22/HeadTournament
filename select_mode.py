@@ -41,23 +41,51 @@ def panel_pos(x, y):
     return PANEL_LEFT + x, PANEL_TOP - y
 
 
-def init():
-    global selected, background, panel, stat_seg, slot_normal, slot_selected, sheets, portraits
-    global name_font, skill_font, desc_font
+def load_screen_images():
+    global background, panel, stat_seg, slot_normal, slot_selected
 
-    # 화면에 들어올 때마다 첫 번째 슬롯부터
-    selected = 0
     background = load_image('resource/select_bg.png')
     panel = load_image('resource/info_panel.png')
     stat_seg = load_image('resource/stat_seg.png')
     slot_normal = load_image('resource/slot_normal.png')
     slot_selected = load_image('resource/slot_selected.png')
-    # 유형마다 큰 그림용 선수 시트와 슬롯용 초상화
-    sheets = [load_image(CHARACTER_TYPES[key]['sheet']) for key in TYPE_KEYS]
-    portraits = [load_image(CHARACTER_TYPES[key]['portrait']) for key in TYPE_KEYS]
+
+
+def load_fonts():
+    global name_font, skill_font, desc_font
+
     name_font = load_font('resource/BlackHanSans-Regular.ttf', 40)
     skill_font = load_font('resource/NanumGothic-Bold.ttf', 22)
     desc_font = load_font('resource/NanumGothic-Bold.ttf', 22)
+
+
+def load_character(key):
+    global sheets, portraits
+
+    # 한 유형의 큰 그림용 선수 시트와 슬롯용 초상화 (TYPE_KEYS 순서대로 불러야 함)
+    if sheets is None:
+        sheets, portraits = [], []
+    sheets.append(load_image(CHARACTER_TYPES[key]['sheet']))
+    portraits.append(load_image(CHARACTER_TYPES[key]['portrait']))
+
+
+def preload_tasks():
+    # 로딩 화면에서 미리 할 일 목록: 화면 이미지, 글꼴, 유형마다 시트와 초상화
+    tasks = [load_screen_images, load_fonts]
+    for key in TYPE_KEYS:
+        tasks.append(lambda key=key: load_character(key))
+    return tasks
+
+
+def init():
+    global selected
+
+    # 화면에 들어올 때마다 첫 번째 슬롯부터
+    selected = 0
+    # 로딩 화면을 거치지 않고 들어왔으면 여기서 한꺼번에 불러옴
+    if background is None:
+        for task in preload_tasks():
+            task()
 
 
 def finish():
