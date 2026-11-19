@@ -15,8 +15,12 @@ FONT_SIZE = 28
 
 # 로딩이 끝나면 넘어갈 모드 (로딩 화면으로 바꾸기 전에 정해 줌)
 next_mode = None
-# 로딩 화면에 들어온 뒤 지난 시간, 0~1로 나타낸 진행률
+# 미리 불러오기 할 일 목록 (인자 없는 함수들, 로딩 화면으로 바꾸기 전에 정해 줌)
+# 한 프레임에 하나씩 실행해서, 불러오는 도중에도 바가 차오르는 것이 보이게 함
+tasks = []
+# 로딩 화면에 들어온 뒤 지난 시간, 끝낸 일 개수, 0~1로 나타낸 진행률
 elapsed = 0.0
+done = 0
 progress = 0.0
 background = None
 bar_frame = None
@@ -26,9 +30,10 @@ font = None
 
 
 def init():
-    global elapsed, progress, background, bar_frame, bar_fill, ball, font
+    global elapsed, done, progress, background, bar_frame, bar_fill, ball, font
 
     elapsed = 0.0
+    done = 0
     progress = 0.0
     background = load_image('resource/loading_screen.png')
     bar_frame = load_image('resource/loading_bar_frame.png')
@@ -46,11 +51,18 @@ def finish():
 
 
 def update():
-    global elapsed, progress
+    global elapsed, done, progress
 
-    # 지금은 시간에 따라 바를 채움 (리소스 불러오기는 다음 단계에서)
+    # 한 프레임에 할 일 하나씩 (이미지, 글꼴 불러오기)
+    if done < len(tasks):
+        tasks[done]()
+        done += 1
+
+    # 진행률은 "끝낸 일의 비율"과 "지난 시간의 비율" 중 느린 쪽을 따름
+    # (실제 로딩이 금방 끝나도 최소 시간은 보여 주고, 로딩이 길면 그만큼 기다림)
     elapsed += game_framework.frame_time
-    progress = min(elapsed / LOADING_TIME, 1.0)
+    task_rate = done / len(tasks) if tasks else 1.0
+    progress = min(elapsed / LOADING_TIME, task_rate, 1.0)
     if progress >= 1.0:
         game_framework.change_mode(next_mode)
 
