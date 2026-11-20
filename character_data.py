@@ -21,4 +21,8 @@ CHARACTER_TYPES = {
                'portrait': 'resource/portrait_keeper.png',
                'speed': 3, 'power': 3, 'skill': '철벽 방어',
                'desc': '잠시 동안 몸에 닿는 공을 모두 막아 낸다'},
+    'aerial': {'name': '공중형', 'sheet': 'resource/sheet_aerial.png',
+               'portrait': 'resource/portrait_aerial.png',
+               'speed': 3, 'power': 4, 'skill': '오버헤드킥',
+               'desc': '높이 뛰어올라 공중에서 공을 내리꽂는다'},
 }
