@@ -108,8 +108,9 @@ def draw_panel():
     data = CHARACTER_TYPES[TYPE_KEYS[selected]]
     panel.draw(PANEL_X, PANEL_Y)
 
-    # 왼쪽에 큰 선수 그림 (시트 맨 윗줄 서 있기의 첫 칸)
-    sheets[selected].clip_draw(0, 7 * 256, 256, 256, *panel_pos(150, 178), 290, 290)
+    # 왼쪽에 큰 선수 그림 (시트 맨 윗줄 서 있기의 첫 칸, 시트 줄 수는 유형마다 8줄 또는 9줄)
+    sheet = sheets[selected]
+    sheet.clip_draw(0, sheet.h - 256, 256, 256, *panel_pos(150, 178), 290, 290)
 
     # 이름, 필살기 (주황 띠 가운데), 설명
     name_font.draw(*panel_pos(344, 50), data['name'], (255, 255, 255))

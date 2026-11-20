@@ -65,6 +65,10 @@ FALL_TIME = 1.2
 FALL_FRAMES_PER_SECOND = 10.0
 
 
+# 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워)
+STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7}
+
+
 class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
     images = {}
@@ -323,26 +327,13 @@ class Character:
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
-        if self.state == 'IDLE':
-            self.image.clip_composite_draw(int(self.frame) * 256, 7 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'RUN':
-            self.image.clip_composite_draw(int(self.frame) * 256, 6 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'JUMP':
-            self.image.clip_composite_draw(int(self.frame) * 256, 5 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'KICK':
-            self.image.clip_composite_draw(int(self.frame) * 256, 4 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'TACKLE':
-            # 시트 4번 줄(tackle)
-            self.image.clip_composite_draw(int(self.frame) * 256, 3 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'FALL':
-            # 시트 5번 줄(fall)
-            self.image.clip_composite_draw(int(self.frame) * 256, 2 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'TRICK':
-            # 시트 6번 줄(trick)
-            self.image.clip_composite_draw(int(self.frame) * 256, 1 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
-        elif self.state == 'POWER':
-            # 시트 맨 아래 줄(power)
-            self.image.clip_composite_draw(int(self.frame) * 256, 0 * 256, 256, 256, 0, flip, self.x, self.y, 160, 160)
+        # 시트에서 지금 상태의 줄 (위에서부터 센 번호)
+        # pico2d는 이미지 아래쪽이 y = 0이므로, 시트 줄 수에서 거꾸로 세어 clip 위치를 구함
+        # (기존 3종은 8줄, 신규 2종은 자기 필살기 줄이 하나 더 있는 9줄이라 줄 수를 이미지 높이로 계산)
+        row = STATE_ROWS[self.state]
+        sheet_rows = self.image.h // 256
+        self.image.clip_composite_draw(int(self.frame) * 256, (sheet_rows - 1 - row) * 256, 256, 256,
+                                       0, flip, self.x, self.y, 160, 160)
         draw_circle(*self.get_head(), 255, 0, 0)
         draw_rectangle(*self.get_bb())
         if self.state in ('KICK', 'POWER'):
