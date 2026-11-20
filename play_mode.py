@@ -1,6 +1,9 @@
+import random
+
 from pico2d import *
 
 import game_framework
+import select_mode
 import game_world
 from background import Background
 from ground import Ground
@@ -112,11 +115,14 @@ def init():
     ground = Ground()
     game_world.add_object(ground, 0)
 
-    player = Character('defender', 320, 1)
+    # 플레이어는 선택 화면에서 고른 유형
+    player_type = select_mode.TYPE_KEYS[select_mode.selected]
+    player = Character(player_type, 320, 1)
     game_world.add_object(player, 1)
 
-    # 상대 선수: 오른쪽에서 왼쪽을 바라봄 (움직임은 나중에 AI로)
-    opponent = Character('trickster', 960, -1)
+    # 상대 선수: 고르지 않은 유형 중 하나, 오른쪽에서 왼쪽을 바라봄
+    opponent_type = random.choice([key for key in select_mode.TYPE_KEYS if key != player_type])
+    opponent = Character(opponent_type, 960, -1)
     game_world.add_object(opponent, 1)
 
     # 상대 선수는 AI가 조종 (그림이 없으므로 레이어는 상관없음)
