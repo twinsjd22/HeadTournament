@@ -5,6 +5,7 @@ from pico2d import *
 import game_framework
 import loading_mode
 import select_mode
+import tournament
 
 # 메뉴 글자 (위에서부터 이 순서로 버튼을 놓음)
 MENUS = ('게임 시작', '종료')
@@ -85,6 +86,8 @@ def handle_events():
                 selected = min(selected + 1, len(MENUS) - 1)
             elif event.key in (SDLK_SPACE, SDLK_RETURN):
                 if MENUS[selected] == '게임 시작':
+                    # 새 토너먼트를 32강부터 시작
+                    tournament.start()
                     # 로딩 화면에서 선택 화면 리소스를 미리 불러온 뒤 캐릭터 선택으로
                     loading_mode.next_mode = select_mode
                     loading_mode.tasks = select_mode.preload_tasks()
