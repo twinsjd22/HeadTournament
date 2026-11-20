@@ -1,10 +1,14 @@
 import random
+import sys
 
 from pico2d import *
 
 import game_framework
 import select_mode
 import game_world
+import loading_mode
+import title_mode
+import tournament
 from background import Background
 from ground import Ground
 from character import Character, GAUGE_SCORE, GAUGE_CONCEDE, TRICK_SPEED_RATE
@@ -109,6 +113,10 @@ def init():
     global goal_left
     global goal_right
     global match
+    global paused
+
+    # 멈춤 상태로 끝난 경기가 있어도 새 경기는 진행 상태로 시작
+    paused = False
 
     background = Background()
     game_world.add_object(background, 0)
@@ -283,6 +291,20 @@ def draw():
     update_canvas()
 
 
+def next_after_match():
+    # 경기가 끝난 뒤 Space: 지면 메인 화면, 이기면 다음 라운드, 결승에서 이기면 우승 (우승 화면은 나중에)
+    won = match.score_left > match.score_right
+    if not won or tournament.is_final():
+        game_framework.change_mode(title_mode)
+        return
+    # 다음 라운드: 로딩 화면을 거쳐 경기 화면을 새로 시작 (상대는 다시 무작위)
+    tournament.next_round()
+    # 다음 모드는 이 경기 화면 모듈 자신
+    loading_mode.next_mode = sys.modules[__name__]
+    loading_mode.tasks = preload_tasks()
+    game_framework.change_mode(loading_mode)
+
+
 def handle_events():
     global paused
 
@@ -295,6 +317,10 @@ def handle_events():
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
+        elif match.over:
+            # 경기가 끝나면 선수는 움직이지 않고, Space로 다음 화면으로
+            if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
+                next_after_match()
         else:
             player.handle_event(event)
 
