@@ -16,6 +16,7 @@ from timer_board import TimerBoard
 from match import Match
 from opponent_ai import OpponentAI
 from gauge_board import GaugeBoard
+from round_board import RoundBoard
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -45,7 +46,7 @@ def preload_tasks():
     # 로딩 화면에서 미리 할 일 목록: 객체를 한 번씩 만들어 보면 각 클래스가 공유 이미지와 글꼴을 불러 둠
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
-             ScoreBoard, TimerBoard, lambda: GaugeBoard(None, 'left')]
+             ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left')]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -144,6 +145,10 @@ def init():
 
     timer_board = TimerBoard()
     game_world.add_object(timer_board, 2)
+
+    # 왼쪽 위에 토너먼트 라운드
+    round_board = RoundBoard()
+    game_world.add_object(round_board, 2)
 
     # 스킬 게이지: 플레이어는 왼쪽 아래, 상대는 오른쪽 아래
     player_gauge = GaugeBoard(player, 'left')
