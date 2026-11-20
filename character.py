@@ -81,6 +81,10 @@ OVERHEAD_FLIP_TIME = 0.08
 OVERHEAD_KICK_TIME = 0.2
 # 착지한 뒤 등으로 누워 있는 시간(초)
 OVERHEAD_LAND_TIME = 0.4
+# 차는 칸(3)에서 위로 올라간 발의 위치 (몸 중심 기준, 공을 보내는 쪽의 반대쪽 위)와 반지름
+OVERHEAD_FOOT_X = 40
+OVERHEAD_FOOT_Y = 62
+OVERHEAD_FOOT_RADIUS = 30
 
 
 # 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워, 신규 유형의 필살기)
@@ -406,6 +410,10 @@ class Character:
         # 철벽 방어 보호막 원 (중심 x, 중심 y, 반지름)
         return self.x, self.y + GUARD_OFFSET_Y, GUARD_RADIUS
 
+    def get_overhead_foot(self):
+        # 오버헤드킥으로 몸을 뒤집었을 때 머리 위로 올라간 발 (중심 x, 중심 y, 반지름)
+        return self.x - self.face_dir * OVERHEAD_FOOT_X, self.y + OVERHEAD_FOOT_Y, OVERHEAD_FOOT_RADIUS
+
     def get_bb(self):
         # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위
         return self.x - 18, self.y - 80, self.x + 18, self.y + 10
@@ -436,6 +444,8 @@ class Character:
         draw_rectangle(*self.get_bb())
         if self.state in ('KICK', 'POWER'):
             draw_circle(*self.get_foot(), 255, 0, 0)
+        if self.state == 'OVERHEAD' and int(self.frame) == 3:
+            draw_circle(*self.get_overhead_foot(), 255, 0, 0)
         if self.state == 'TACKLE':
             draw_rectangle(*self.get_tackle_bb())
         if self.state == 'GUARD':

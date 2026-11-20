@@ -241,6 +241,17 @@ def update():
                 ball.dribbled(character.x + character.face_dir * DRIBBLE_DISTANCE, trick_vx)
                 continue
 
+        # 오버헤드킥 중에는 몸이 뒤집혀 머리 대신 위로 올라간 발로 공을 참 (뛰어오를 때 한 번만)
+        if character.state == 'OVERHEAD':
+            if int(character.frame) == 3 and not character.kick_hit:
+                if collide_circle(character.get_overhead_foot(), ball.get_circle()):
+                    ball.overhead_kicked(character.face_dir, character.kick_power_rate)
+                    character.kick_hit = True
+                    foot_x, foot_y, foot_r = character.get_overhead_foot()
+                    game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2, POWER_EFFECT_SIZE), 1)
+                    character.touch_ball()
+            continue
+
         if ball.head_ignore == 0 and collide_circle(character.get_head(), ball.get_circle()):
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
             head_vy = character.vy if character.state == 'JUMP' else 0

@@ -75,6 +75,12 @@ TRICK_RELEASE_SPEED_PPS = (TRICK_RELEASE_SPEED_MPS * PIXEL_PER_METER)
 GUARD_REPEL_SPEED_MPS = 10.0
 GUARD_REPEL_SPEED_PPS = (GUARD_REPEL_SPEED_MPS * PIXEL_PER_METER)
 
+# 오버헤드킥으로 내리꽂는 속도 (가로, 아래로, 파워 능력치 3 기준)
+OVERHEAD_SPEED_X_MPS = 9.0
+OVERHEAD_SPEED_X_PPS = (OVERHEAD_SPEED_X_MPS * PIXEL_PER_METER)
+OVERHEAD_SPEED_DOWN_MPS = 6.0
+OVERHEAD_SPEED_DOWN_PPS = (OVERHEAD_SPEED_DOWN_MPS * PIXEL_PER_METER)
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -226,6 +232,11 @@ class Ball:
         # 들어온 속도가 빨라도 느려도 최소 속도 이상으로 바깥쪽을 향해 튕김
         speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy), GUARD_REPEL_SPEED_PPS)
         self.vx, self.vy = nx * speed, ny * speed
+
+    def overhead_kicked(self, face_dir, power_rate):
+        # 오버헤드킥: 바라보는 쪽 아래 대각선으로 세게 내리꽂음 (power_rate: 찬 선수의 킥 세기 배율)
+        self.vx = face_dir * OVERHEAD_SPEED_X_PPS * power_rate
+        self.vy = -OVERHEAD_SPEED_DOWN_PPS * power_rate
 
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림
