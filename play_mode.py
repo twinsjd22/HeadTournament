@@ -220,6 +220,17 @@ def update():
                 character.touch_ball()
             continue
 
+        # 철벽 방어 중에는 보호막 범위 안의 공을 바깥으로 튕겨 냄 (머리, 킥, 몸 충돌 대신)
+        if character.state == 'GUARD':
+            if collide_circle(character.get_guard_circle(), ball.get_circle()):
+                ball.repelled(*character.get_guard_circle())
+                # 이펙트와 게이지는 한 번 쓸 때 한 번만
+                if not character.kick_hit:
+                    character.kick_hit = True
+                    game_world.add_object(HitEffect(ball.x, ball.y), 1)
+                    character.touch_ball()
+            continue
+
         # 트릭스터 중 낮은 공이 몸이나 발에 닿으면 발 앞에 붙여 몰고 감 (머리, 킥 충돌은 없음)
         if character.state == 'TRICK':
             if not character.dribble and (collide_circle_box(ball.get_circle(), character.get_bb()) or collide_circle(character.get_foot(), ball.get_circle())):
@@ -261,7 +272,7 @@ def update():
 
     # 공이 선수 몸에 맞으면 튕김 (몸을 통과해 뒤로 빠지지 않음, 트릭스터 중이면 그 선수만)
     for character in ball_players():
-        if character.state != 'TACKLE' and collide_circle_box(ball.get_circle(), character.get_bb()):
+        if character.state not in ('TACKLE', 'GUARD') and collide_circle_box(ball.get_circle(), character.get_bb()):
             ball.bounce_from_box(*character.get_bb())
             ball.blocked()
 

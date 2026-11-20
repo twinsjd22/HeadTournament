@@ -64,9 +64,18 @@ FALL_TIME = 1.2
 # 넘어짐 애니메이션 (fall 줄 4칸을 넘어가며 보여 주고 마지막 칸에서 누워 있음)
 FALL_FRAMES_PER_SECOND = 10.0
 
+# 철벽 방어 (골키퍼형 필살 스킬): 이 시간(초) 동안 보호막을 순간 펼쳐 주변의 공을 튕겨 냄
+GUARD_TIME = 1.0
+# 철벽 방어 애니메이션 (guard 줄 6칸을 동작 시간 동안 한 번 보여 줌: 팔 벌리기, 보호막, 마무리)
+GUARD_FRAMES_PER_SECOND = 6 / GUARD_TIME
+# 공을 튕겨 내는 범위: 몸 가운데보다 조금 아래가 중심, 그림의 파란 원보다 조금 넓게
+GUARD_OFFSET_Y = -8
+GUARD_RADIUS = 80
 
-# 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워)
-STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7}
+
+# 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워, 신규 유형의 필살기)
+STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7,
+              'GUARD': 8}
 
 
 class Character:
@@ -107,9 +116,10 @@ class Character:
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         # TACKLE: 하드태클 (수비형 필살 스킬, 앞으로 미끄러지며 대시)
         # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
+        # GUARD: 철벽 방어 (골키퍼형 필살 스킬, 1초 동안 보호막으로 주변 공을 튕겨 냄, 이때는 태클에 넘어지지 않음)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -121,6 +131,8 @@ class Character:
                 {'trigger': 'trick_end', 'source': 'TRICK', 'dest': 'IDLE'},
                 {'trigger': 'tackle', 'source': ['IDLE', 'RUN'], 'dest': 'TACKLE'},
                 {'trigger': 'tackle_end', 'source': 'TACKLE', 'dest': 'IDLE'},
+                {'trigger': 'guard', 'source': ['IDLE', 'RUN'], 'dest': 'GUARD'},
+                {'trigger': 'guard_end', 'source': 'GUARD', 'dest': 'IDLE'},
                 {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER'], 'dest': 'FALL'},
                 {'trigger': 'get_up', 'source': 'FALL', 'dest': 'IDLE'},
                 {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
@@ -153,6 +165,12 @@ class Character:
         self.frame = 0
         self.tackle_time = TACKLE_TIME
         # 태클 한 번에 공은 한 번만 쓸어 감
+        self.kick_hit = False
+
+    def on_enter_GUARD(self):
+        self.frame = 0
+        self.guard_time = GUARD_TIME
+        # 한 번 쓸 때 이펙트와 게이지 터치는 한 번만
         self.kick_hit = False
 
     def on_enter_FALL(self):
@@ -264,6 +282,15 @@ class Character:
                 self.get_up()
                 if self.dir != 0:
                     self.move_start()
+        elif self.state == 'GUARD':
+            # 팔을 벌려 보호막을 펼쳤다가 거두는 6칸을 한 번 보여 줌
+            self.frame = min(self.frame + GUARD_FRAMES_PER_SECOND * game_framework.frame_time, 5)
+            self.guard_time -= game_framework.frame_time
+            if self.guard_time <= 0:
+                self.guard_end()
+                if self.dir != 0:
+                    self.face_dir = self.dir
+                    self.move_start()
 
     def reset(self, x, face_dir):
         # 득점 후 처음 자리로 돌아감
@@ -296,6 +323,8 @@ class Character:
             self.trick()
         elif self.char_type == 'defender':
             self.tackle()
+        elif self.char_type == 'keeper':
+            self.guard()
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
@@ -311,6 +340,10 @@ class Character:
         if self.state == 'RUN':
             return self.x + self.face_dir * 16, self.y + 39, 30
         return self.x + self.face_dir * 2, self.y + 39, 30
+
+    def get_guard_circle(self):
+        # 철벽 방어 보호막 원 (중심 x, 중심 y, 반지름)
+        return self.x, self.y + GUARD_OFFSET_Y, GUARD_RADIUS
 
     def get_bb(self):
         # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위
@@ -340,3 +373,5 @@ class Character:
             draw_circle(*self.get_foot(), 255, 0, 0)
         if self.state == 'TACKLE':
             draw_rectangle(*self.get_tackle_bb())
+        if self.state == 'GUARD':
+            draw_circle(*self.get_guard_circle(), 255, 0, 0)

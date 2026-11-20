@@ -71,6 +71,10 @@ TACKLE_SWEEP_Y_PPS = (TACKLE_SWEEP_Y_MPS * PIXEL_PER_METER)
 TRICK_RELEASE_SPEED_MPS = 1.5
 TRICK_RELEASE_SPEED_PPS = (TRICK_RELEASE_SPEED_MPS * PIXEL_PER_METER)
 
+# 철벽 방어 보호막에 맞은 공이 튕겨 나가는 최소 속도
+GUARD_REPEL_SPEED_MPS = 10.0
+GUARD_REPEL_SPEED_PPS = (GUARD_REPEL_SPEED_MPS * PIXEL_PER_METER)
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -208,6 +212,20 @@ class Ball:
         # 트릭스터가 끝나면 몰고 가던 공을 앞으로 살짝 밀어 놓음 (바로 슛이 되지 않음)
         self.vx = face_dir * TRICK_RELEASE_SPEED_PPS
         self.vy = 0
+
+    def repelled(self, cx, cy, r):
+        # 철벽 방어 보호막(원)에 맞으면 원 바깥쪽으로 세게 튕겨 나감
+        dx, dy = self.x - cx, self.y - cy
+        d = math.sqrt(dx * dx + dy * dy)
+        if d == 0:
+            dx, dy, d = 0, 1, 1
+        nx, ny = dx / d, dy / d
+        # 공을 보호막 바깥으로 밀어냄
+        self.x = cx + nx * (r + 32)
+        self.y = cy + ny * (r + 32)
+        # 들어온 속도가 빨라도 느려도 최소 속도 이상으로 바깥쪽을 향해 튕김
+        speed = max(math.sqrt(self.vx * self.vx + self.vy * self.vy), GUARD_REPEL_SPEED_PPS)
+        self.vx, self.vy = nx * speed, ny * speed
 
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림
