@@ -72,10 +72,20 @@ GUARD_FRAMES_PER_SECOND = 6 / GUARD_TIME
 GUARD_OFFSET_Y = -8
 GUARD_RADIUS = 80
 
+# 오버헤드킥 (공중형 필살 스킬): 점프 중에 Z를 누르면 그 자리에서 몸을 뒤집어 머리 위의 공을 참
+# 누르는 순간 살짝 떠올라(위로 이 속도) 몸을 뒤집을 시간을 벌어 줌
+OVERHEAD_HOP_SPEED_MPS = 3.0
+OVERHEAD_HOP_SPEED_PPS = (OVERHEAD_HOP_SPEED_MPS * PIXEL_PER_METER)
+# 누른 뒤 몸 뒤집기(2칸)를 보여 주는 시간, 차기(3칸)를 보여 주는 시간 (초)
+OVERHEAD_FLIP_TIME = 0.08
+OVERHEAD_KICK_TIME = 0.2
+# 착지한 뒤 등으로 누워 있는 시간(초)
+OVERHEAD_LAND_TIME = 0.4
+
 
 # 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워, 신규 유형의 필살기)
 STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7,
-              'GUARD': 8}
+              'GUARD': 8, 'OVERHEAD': 8}
 
 
 class Character:
@@ -116,10 +126,11 @@ class Character:
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         # TACKLE: 하드태클 (수비형 필살 스킬, 앞으로 미끄러지며 대시)
         # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
+        # OVERHEAD: 오버헤드킥 (공중형 필살 스킬, 점프 중에 몸을 뒤집어 차고 등으로 착지)
         # GUARD: 철벽 방어 (골키퍼형 필살 스킬, 1초 동안 보호막으로 주변 공을 튕겨 냄, 이때는 태클에 넘어지지 않음)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD', 'OVERHEAD'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -133,6 +144,8 @@ class Character:
                 {'trigger': 'tackle_end', 'source': 'TACKLE', 'dest': 'IDLE'},
                 {'trigger': 'guard', 'source': ['IDLE', 'RUN'], 'dest': 'GUARD'},
                 {'trigger': 'guard_end', 'source': 'GUARD', 'dest': 'IDLE'},
+                {'trigger': 'overhead', 'source': 'JUMP', 'dest': 'OVERHEAD'},
+                {'trigger': 'overhead_end', 'source': 'OVERHEAD', 'dest': 'IDLE'},
                 {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER'], 'dest': 'FALL'},
                 {'trigger': 'get_up', 'source': 'FALL', 'dest': 'IDLE'},
                 {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
@@ -171,6 +184,18 @@ class Character:
         self.frame = 0
         self.guard_time = GUARD_TIME
         # 한 번 쓸 때 이펙트와 게이지 터치는 한 번만
+        self.kick_hit = False
+
+    def on_enter_OVERHEAD(self):
+        # 점프 중에 들어오므로 도약 칸(0~1)은 건너뛰고 몸 뒤집기부터
+        self.frame = 2
+        self.vy = OVERHEAD_HOP_SPEED_PPS
+        # 누른 뒤 지난 시간 (칸을 고르는 데 씀)
+        self.overhead_time = 0.0
+        # 아직 공중에 있는지, 착지 뒤 누워 있을 남은 시간
+        self.overhead_landed = False
+        self.overhead_land_time = OVERHEAD_LAND_TIME
+        # 한 번 뛰어올라 공은 한 번만 참
         self.kick_hit = False
 
     def on_enter_FALL(self):
@@ -282,6 +307,8 @@ class Character:
                 self.get_up()
                 if self.dir != 0:
                     self.move_start()
+        elif self.state == 'OVERHEAD':
+            self.update_overhead()
         elif self.state == 'GUARD':
             # 팔을 벌려 보호막을 펼쳤다가 거두는 6칸을 한 번 보여 줌
             self.frame = min(self.frame + GUARD_FRAMES_PER_SECOND * game_framework.frame_time, 5)
@@ -291,6 +318,35 @@ class Character:
                 if self.dir != 0:
                     self.face_dir = self.dir
                     self.move_start()
+
+    def update_overhead(self):
+        # 오버헤드킥: 공중에서는 점프처럼 움직이고, 착지하면 잠깐 누워 있다가 일어남
+        if self.overhead_landed:
+            self.overhead_land_time -= game_framework.frame_time
+            if self.overhead_land_time <= 0:
+                self.overhead_end()
+                if self.dir != 0:
+                    self.face_dir = self.dir
+                    self.move_start()
+            return
+
+        self.x += self.dir * self.run_speed_pps * game_framework.frame_time
+        self.x = clamp(50, self.x, 1280 - 50)
+        self.y += self.vy * game_framework.frame_time
+        self.vy -= GRAVITY_PPS2 * game_framework.frame_time
+        # 누른 뒤 지난 시간에 따라 칸을 고름: 몸 뒤집기(2) → 차기(3) → 등으로 떨어짐(4)
+        self.overhead_time += game_framework.frame_time
+        if self.overhead_time < OVERHEAD_FLIP_TIME:
+            self.frame = 2
+        elif self.overhead_time < OVERHEAD_FLIP_TIME + OVERHEAD_KICK_TIME:
+            self.frame = 3
+        else:
+            self.frame = 4
+        if self.y <= 160:
+            # 등으로 착지해 누운 모습(5)
+            self.y = 160
+            self.frame = 5
+            self.overhead_landed = True
 
     def reset(self, x, face_dir):
         # 득점 후 처음 자리로 돌아감
@@ -311,9 +367,12 @@ class Character:
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
         if self.gauge < GAUGE_MAX:
             return
-        # 태클과 트릭스터는 서 있거나 달릴 때만 나가므로, 그 밖의 상태에서는 게이지를 쓰지 않음
-        # (파워슛은 준비만 하는 것이라 언제든 가능)
-        if self.char_type != 'power' and self.state not in ('IDLE', 'RUN'):
+        # 오버헤드킥은 점프 중에만, 파워슛은 준비만 하는 것이라 언제든,
+        # 나머지는 서 있거나 달릴 때만 나가므로 그 밖의 상태에서는 게이지를 쓰지 않음
+        if self.char_type == 'aerial':
+            if self.state != 'JUMP':
+                return
+        elif self.char_type != 'power' and self.state not in ('IDLE', 'RUN'):
             return
         self.gauge = 0
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
@@ -325,6 +384,8 @@ class Character:
             self.tackle()
         elif self.char_type == 'keeper':
             self.guard()
+        elif self.char_type == 'aerial':
+            self.overhead()
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
@@ -360,6 +421,10 @@ class Character:
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
+        # 오버헤드킥은 골대를 등지고 뒤로 넘어지며 머리 위로 공을 넘기므로,
+        # 공을 보내는 쪽(바라보는 쪽)의 반대를 보게 그림을 뒤집음
+        if self.state == 'OVERHEAD':
+            flip = 'h' if self.face_dir == 1 else ''
         # 시트에서 지금 상태의 줄 (위에서부터 센 번호)
         # pico2d는 이미지 아래쪽이 y = 0이므로, 시트 줄 수에서 거꾸로 세어 clip 위치를 구함
         # (기존 3종은 8줄, 신규 2종은 자기 필살기 줄이 하나 더 있는 9줄이라 줄 수를 이미지 높이로 계산)
