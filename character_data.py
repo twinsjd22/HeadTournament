@@ -17,4 +17,8 @@ CHARACTER_TYPES = {
               'portrait': 'resource/portrait_power.png',
               'speed': 2, 'power': 5, 'skill': '파워슛',
               'desc': '공을 아주 강하게 찬다'},
+    'keeper': {'name': '골키퍼형', 'sheet': 'resource/sheet_keeper.png',
+               'portrait': 'resource/portrait_keeper.png',
+               'speed': 3, 'power': 3, 'skill': '철벽 방어',
+               'desc': '잠시 동안 몸에 닿는 공을 모두 막아 낸다'},
 }
