@@ -29,6 +29,18 @@ JUMP_OVER_DISTANCE = 90
 HEADING_OFFSET = 20
 # 필살 스킬: 게이지가 가득 차고 공이 바라보는 쪽 앞 이 거리 안에 낮게 있으면 사용
 SKILL_DISTANCE = 150
+# 철벽 방어 (골키퍼형): 공이 이 속도보다 빠르게 자기 골대 쪽으로 날아오며, 이 거리 안에 이 높이보다 낮게 오면 사용
+GUARD_BALL_SPEED_PPS = 3.0 * (150.0 / 1.75)
+GUARD_DISTANCE = 140
+GUARD_MAX_HEIGHT = 300
+# 오버헤드킥 (공중형): 공이 머리 위 뒤쪽(자기 골대 쪽)에서 이 높이 사이로 떨어지면 점프하고,
+# 점프 중 공이 차는 발에서 이 거리 안에 들어오면 사용
+OVERHEAD_JUMP_DISTANCE = 90
+OVERHEAD_MIN_HEIGHT = 300
+OVERHEAD_MAX_HEIGHT = 480
+OVERHEAD_USE_DISTANCE = 70
+# 오버헤드킥을 노릴 때는 공이 떨어질 자리보다 이만큼 왼쪽에 서서, 공이 머리 위 뒤쪽(차는 발 쪽)으로 오게 함
+OVERHEAD_STAND_OFFSET = 40
 
 # 서 있는 선수의 머리 높이 (높은 공이 이 높이까지 떨어질 자리를 예측함)
 HEAD_HEIGHT = 230
@@ -70,7 +82,12 @@ class OpponentAI:
         if ball.y < BALL_LOW_HEIGHT:
             target_dx = ball.x + BEHIND_DISTANCE - self.character.x
         else:
-            target_dx = predict_landing_x(ball) + HEADING_OFFSET - self.character.x
+            # 공중형이 오버헤드킥을 노릴 때는 공이 차는 발 쪽(뒤쪽)으로 떨어지게 왼쪽에 섬
+            if self.character.char_type == 'aerial' and self.character.gauge >= GAUGE_MAX:
+                offset = -OVERHEAD_STAND_OFFSET
+            else:
+                offset = HEADING_OFFSET
+            target_dx = predict_landing_x(ball) + offset - self.character.x
         if self.character.dir == 0:
             if abs(target_dx) > FOLLOW_START_DISTANCE:
                 self.move(1 if target_dx > 0 else -1)
@@ -101,8 +118,26 @@ class OpponentAI:
             else:
                 self.character.kick()
 
-        # 규칙 5: 게이지가 가득 차고 공이 앞에 낮게 있으면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만)
-        if self.character.gauge >= GAUGE_MAX and self.character.face_dir == -1 and 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
+        # 규칙 5: 게이지가 가득 차면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만, 유형마다 쓰는 상황이 다름)
+        if self.character.gauge >= GAUGE_MAX and self.character.face_dir == -1:
+            self.use_skill(ball, dx, front)
+
+    def use_skill(self, ball, dx, front):
+        char_type = self.character.char_type
+        if char_type == 'keeper':
+            # 철벽 방어: 슛이 자기 골대 쪽으로 빠르게 날아와 가까이 왔을 때 받아침
+            if ball.vx > GUARD_BALL_SPEED_PPS and -GUARD_DISTANCE < dx < 0 and ball.y < GUARD_MAX_HEIGHT:
+                self.character.use_skill()
+        elif char_type == 'aerial':
+            # 오버헤드킥: 공이 머리 위 뒤쪽으로 떨어지면 점프하고, 점프 중 공이 차는 발 가까이 오면 사용
+            if self.character.state == 'JUMP':
+                foot_x, foot_y, foot_r = self.character.get_overhead_foot()
+                if math.hypot(ball.x - foot_x, ball.y - foot_y) < OVERHEAD_USE_DISTANCE:
+                    self.character.use_skill()
+            elif 0 < dx < OVERHEAD_JUMP_DISTANCE and OVERHEAD_MIN_HEIGHT < ball.y < OVERHEAD_MAX_HEIGHT and ball.vy < 0:
+                self.character.jump()
+        elif 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
+            # 나머지 유형: 공이 앞에 낮게 있으면 사용
             self.character.use_skill()
 
     def draw(self):
