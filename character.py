@@ -196,6 +196,8 @@ class Character:
         self.vy = OVERHEAD_HOP_SPEED_PPS
         # 누른 뒤 지난 시간 (칸을 고르는 데 씀)
         self.overhead_time = 0.0
+        # 공을 보낼 방향은 누를 때 바라보던 쪽으로 고정 (도중에 방향키를 눌러도 바뀌지 않음)
+        self.overhead_dir = self.face_dir
         # 아직 공중에 있는지, 착지 뒤 누워 있을 남은 시간
         self.overhead_landed = False
         self.overhead_land_time = OVERHEAD_LAND_TIME
@@ -325,6 +327,8 @@ class Character:
 
     def update_overhead(self):
         # 오버헤드킥: 공중에서는 점프처럼 움직이고, 착지하면 잠깐 누워 있다가 일어남
+        # 그동안 바라보는 쪽은 누를 때의 방향으로 유지 (그림도 공을 보낼 방향도 바뀌지 않음)
+        self.face_dir = self.overhead_dir
         if self.overhead_landed:
             self.overhead_land_time -= game_framework.frame_time
             if self.overhead_land_time <= 0:
