@@ -136,7 +136,8 @@ def init():
     game_world.add_object(opponent, 1)
 
     # 상대 선수는 AI가 조종 (그림이 없으므로 레이어는 상관없음)
-    opponent_ai = OpponentAI(opponent)
+    # 라운드가 낮을수록 AI가 공의 움직임에 늦게 반응함
+    opponent_ai = OpponentAI(opponent, tournament.ai_reaction_delay())
     game_world.add_object(opponent_ai, 1)
 
     ball = Ball()

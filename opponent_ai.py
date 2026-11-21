@@ -1,4 +1,8 @@
 import math
+from collections import deque
+from types import SimpleNamespace
+
+import game_framework
 
 import play_mode
 from ball import GRAVITY_PPS2
@@ -59,9 +63,23 @@ class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
     # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
 
-    def __init__(self, character):
+    def __init__(self, character, reaction_delay=0.0):
         # character: AI가 조종할 선수
+        # reaction_delay: 이 시간(초)만큼 전의 공을 보고 판단함 (클수록 늦게 반응하는 약한 AI)
         self.character = character
+        self.reaction_delay = reaction_delay
+        # 지난 공 모습 기록 (시각, 위치와 속도), 지난 시간
+        self.ball_history = deque()
+        self.elapsed = 0.0
+
+    def seen_ball(self):
+        # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
+        ball = play_mode.ball
+        self.elapsed += game_framework.frame_time
+        self.ball_history.append((self.elapsed, SimpleNamespace(x=ball.x, y=ball.y, vx=ball.vx, vy=ball.vy)))
+        while len(self.ball_history) > 1 and self.ball_history[1][0] <= self.elapsed - self.reaction_delay:
+            self.ball_history.popleft()
+        return self.ball_history[0][1]
 
     def move(self, dir):
         # 키보드의 방향키 처리와 같은 방식으로 방향을 바꾸고 이벤트를 넣음
@@ -73,7 +91,8 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        ball = play_mode.ball
+        # 진짜 공 대신 반응 지연만큼 전의 공을 보고 판단함
+        ball = self.seen_ball()
         dx = ball.x - self.character.x
 
         # 규칙 1: 공 쪽으로 이동
