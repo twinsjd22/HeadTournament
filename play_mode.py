@@ -21,6 +21,7 @@ from match import Match
 from opponent_ai import OpponentAI
 from gauge_board import GaugeBoard
 from round_board import RoundBoard
+from result_board import ResultBoard
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -44,13 +45,16 @@ player_side = 1
 match = None
 # P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
 paused = False
+# 경기가 끝나면 보여 주는 결과 (끝나기 전에는 None)
+result_board = None
 
 
 def preload_tasks():
     # 로딩 화면에서 미리 할 일 목록: 객체를 한 번씩 만들어 보면 각 클래스가 공유 이미지와 글꼴을 불러 둠
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
-             ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left')]
+             ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left'),
+             lambda: ResultBoard(True, 0, 0)]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -114,9 +118,11 @@ def init():
     global goal_right
     global match
     global paused
+    global result_board
 
     # 멈춤 상태로 끝난 경기가 있어도 새 경기는 진행 상태로 시작
     paused = False
+    result_board = None
 
     background = Background()
     game_world.add_object(background, 0)
@@ -180,8 +186,14 @@ def finish():
 def update():
     global player_side
 
-    # 멈춤 중이거나 경기가 끝나면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
-    if paused or match.over:
+    # 멈춤 중이면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
+    if paused:
+        return
+    # 경기가 끝나면 경기장은 멈추고 결과만 움직임
+    if match.over:
+        if result_board is None:
+            show_result()
+        result_board.update()
         return
 
     game_world.update()
@@ -307,6 +319,15 @@ def update():
                 opponent.add_gauge(GAUGE_CONCEDE)
             print(f'골! ({goal.side} 골대) {match.score_left} : {match.score_right}')
             reset_positions()
+
+
+def show_result():
+    # 점수판, 타이머 같은 UI를 모두 치우고, 그 자리에 결과를 띄움 (경기장은 그대로)
+    global result_board
+    won = match.score_left > match.score_right
+    result_board = ResultBoard(won, match.score_left, match.score_right)
+    game_world.clear_layer(2)
+    game_world.add_object(result_board, 2)
 
 
 def draw():

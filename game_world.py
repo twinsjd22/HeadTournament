@@ -34,6 +34,11 @@ def render():
             o.draw()
 
 
+def clear_layer(depth):
+    # 한 레이어의 객체만 비움 (경기가 끝나면 UI를 결과 화면으로 바꿀 때)
+    world[depth].clear()
+
+
 def clear():
     # 모든 레이어의 객체를 비움 (모드가 끝날 때 다음 모드를 위해 정리)
     for layer in world:
