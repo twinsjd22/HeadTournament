@@ -336,18 +336,25 @@ def draw():
     update_canvas()
 
 
-def next_after_match():
-    # 경기가 끝난 뒤 Space: 지면 메인 화면, 이기면 다음 라운드, 결승에서 이기면 우승 (우승 화면은 나중에)
-    won = match.score_left > match.score_right
-    if not won or tournament.is_final():
-        game_framework.change_mode(title_mode)
-        return
-    # 다음 라운드: 로딩 화면을 거쳐 경기 화면을 새로 시작 (상대는 다시 무작위)
-    tournament.next_round()
-    # 다음 모드는 이 경기 화면 모듈 자신
+def start_next_match():
+    # 로딩 화면을 거쳐 경기 화면을 새로 시작 (상대는 다시 무작위, 다음 모드는 이 경기 화면 모듈 자신)
     loading_mode.next_mode = sys.modules[__name__]
     loading_mode.tasks = preload_tasks()
     game_framework.change_mode(loading_mode)
+
+
+def next_after_match():
+    # 경기가 끝난 뒤 Space: 이기면 다음 라운드 (결승에서 이기면 메인 화면, 우승 화면은 나중에),
+    # 지면 같은 캐릭터로 32강부터 다시
+    won = match.score_left > match.score_right
+    if won and tournament.is_final():
+        game_framework.change_mode(title_mode)
+        return
+    if won:
+        tournament.next_round()
+    else:
+        tournament.start()
+    start_next_match()
 
 
 def handle_events():
@@ -357,15 +364,17 @@ def handle_events():
     for event in events:
         if event.type == SDL_QUIT:
             game_framework.quit()
+        elif match.over:
+            # 경기가 끝나면 선수는 움직이지 않고, Space로 다음 경기, ESC로 메인 화면
+            if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
+                next_after_match()
+            elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
+                game_framework.change_mode(title_mode)
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
-        elif match.over:
-            # 경기가 끝나면 선수는 움직이지 않고, Space로 다음 화면으로
-            if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
-                next_after_match()
         else:
             player.handle_event(event)
 
