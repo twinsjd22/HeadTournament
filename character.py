@@ -110,6 +110,9 @@ class Character:
         self.x, self.y = x, 160
         self.frame = 0
         self.dir = 0
+        # 왼쪽, 오른쪽 방향키가 지금 눌려 있는지 (플레이어만 씀, 방향은 두 값으로 계산)
+        self.left_pressed = False
+        self.right_pressed = False
         self.face_dir = face_dir
         self.vy = 0
         # 스킬 게이지 (새 경기마다 0에서 시작)
@@ -230,16 +233,15 @@ class Character:
                 self.kick()
             return
 
-        if event.type == SDL_KEYDOWN and event.key in (SDLK_LEFT, SDLK_RIGHT):
+        # 방향키는 눌림 / 뗌을 기억해 두고 방향을 다시 계산함
+        # (이전 화면에서 누른 키를 이 선수가 만들어진 뒤에 떼어도 방향이 거꾸로 꼬이지 않음)
+        if event.type in (SDL_KEYDOWN, SDL_KEYUP) and event.key in (SDLK_LEFT, SDLK_RIGHT):
+            pressed = event.type == SDL_KEYDOWN
             if event.key == SDLK_RIGHT:
-                self.dir += 1
-            elif event.key == SDLK_LEFT:
-                self.dir -= 1
-        elif event.type == SDL_KEYUP and event.key in (SDLK_LEFT, SDLK_RIGHT):
-            if event.key == SDLK_RIGHT:
-                self.dir -= 1
-            elif event.key == SDLK_LEFT:
-                self.dir += 1
+                self.right_pressed = pressed
+            else:
+                self.left_pressed = pressed
+            self.dir = int(self.right_pressed) - int(self.left_pressed)
         else:
             return
 
