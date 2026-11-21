@@ -22,6 +22,7 @@ from opponent_ai import OpponentAI
 from gauge_board import GaugeBoard
 from round_board import RoundBoard
 from result_board import ResultBoard
+from champion_board import ChampionBoard
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -45,7 +46,7 @@ player_side = 1
 match = None
 # P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
 paused = False
-# 경기가 끝나면 보여 주는 결과 (끝나기 전에는 None)
+# 경기가 끝나면 보여 주는 결과 또는 우승 장면 (끝나기 전에는 None)
 result_board = None
 
 
@@ -54,7 +55,7 @@ def preload_tasks():
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
              ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left'),
-             lambda: ResultBoard(True, 0, 0)]
+             lambda: ResultBoard(True, 0, 0), ChampionBoard]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -325,7 +326,11 @@ def show_result():
     # 점수판, 타이머 같은 UI를 모두 치우고, 그 자리에 결과를 띄움 (경기장은 그대로)
     global result_board
     won = match.score_left > match.score_right
-    result_board = ResultBoard(won, match.score_left, match.score_right)
+    # 결승에서 이기면 우승 장면, 아니면 승리 / 패배 결과
+    if won and tournament.is_final():
+        result_board = ChampionBoard()
+    else:
+        result_board = ResultBoard(won, match.score_left, match.score_right)
     game_world.clear_layer(2)
     game_world.add_object(result_board, 2)
 
