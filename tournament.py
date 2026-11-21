@@ -4,6 +4,9 @@
 # 라운드 이름 (앞에서부터 차례로 진행)
 ROUNDS = ('32강', '16강', '8강', '4강', '결승')
 
+# 라운드별 상대 능력치 배율 (달리기 속도, 킥 세기): 32강은 약하게, 결승은 강하게
+OPPONENT_STAT_RATES = (0.8, 0.9, 1.0, 1.1, 1.2)
+
 # 지금 라운드 번호 (ROUNDS 안의 위치)
 round_index = 0
 
@@ -17,6 +20,11 @@ def start():
 def round_name():
     # 지금 라운드 이름 (예: '8강')
     return ROUNDS[round_index]
+
+
+def opponent_stat_rate():
+    # 지금 라운드 상대의 능력치 배율
+    return OPPONENT_STAT_RATES[round_index]
 
 
 def is_final():

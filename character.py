@@ -96,16 +96,17 @@ class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
     images = {}
 
-    def __init__(self, char_type, x, face_dir):
+    def __init__(self, char_type, x, face_dir, stat_rate=1.0):
         # char_type: 'defender', 'trickster', 'power' 같은 유형 키
         # x, face_dir: 시작 위치와 바라보는 방향 (1은 오른쪽, -1은 왼쪽)
+        # stat_rate: 달리기 속도와 킥 세기에 곱하는 배율 (토너먼트 라운드별 상대 강화, 플레이어는 1.0)
         self.char_type = char_type
         # 속도 능력치로 이 선수의 달리기 속도와 달리기 애니메이션 속도를 정함
-        speed_rate = 1 - SPEED_STEP_RATE * (5 - CHARACTER_TYPES[char_type]['speed'])
+        speed_rate = (1 - SPEED_STEP_RATE * (5 - CHARACTER_TYPES[char_type]['speed'])) * stat_rate
         self.run_speed_pps = RUN_SPEED_PPS * speed_rate
         self.run_frames_per_second = RUN_FRAMES_PER_SECOND * speed_rate
         # 파워 능력치로 킥 세기 배율을 정함
-        self.kick_power_rate = 1 + POWER_STEP_RATE * (CHARACTER_TYPES[char_type]['power'] - 3)
+        self.kick_power_rate = (1 + POWER_STEP_RATE * (CHARACTER_TYPES[char_type]['power'] - 3)) * stat_rate
         self.x, self.y = x, 160
         self.frame = 0
         self.dir = 0

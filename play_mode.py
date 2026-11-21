@@ -131,7 +131,8 @@ def init():
 
     # 상대 선수: 고르지 않은 유형 중 하나, 오른쪽에서 왼쪽을 바라봄
     opponent_type = random.choice([key for key in select_mode.TYPE_KEYS if key != player_type])
-    opponent = Character(opponent_type, 960, -1)
+    # 상대는 라운드가 오를수록 빨라지고 킥이 세짐
+    opponent = Character(opponent_type, 960, -1, tournament.opponent_stat_rate())
     game_world.add_object(opponent, 1)
 
     # 상대 선수는 AI가 조종 (그림이 없으므로 레이어는 상관없음)
