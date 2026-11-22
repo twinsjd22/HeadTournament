@@ -26,6 +26,16 @@ def rank_key(record):
     return record['wins'], record['goals_for'] - record['goals_against']
 
 
+def is_ranked(wins, goals_for, goals_against):
+    # 이 기록이 랭킹(상위 기록)에 들어가는지 (안 들어가면 닉네임을 묻지 않음)
+    records = load()
+    if len(records) < MAX_RECORDS:
+        return True
+    # 꼴찌 기록보다 앞서야 들어감 (같으면 먼저 세운 기록이 위라서 밀려남)
+    new_key = rank_key({'wins': wins, 'goals_for': goals_for, 'goals_against': goals_against})
+    return new_key > rank_key(records[-1])
+
+
 def add(name, char_type, wins, goals_for, goals_against):
     # 토너먼트 한 번의 기록을 추가하고, 랭킹 순으로 정렬해 상위 기록만 저장
     # wins: 이긴 경기 수 (0이면 32강 탈락, 라운드 수와 같으면 우승)
