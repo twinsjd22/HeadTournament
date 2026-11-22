@@ -7,6 +7,7 @@ from sdl2.sdlttf import TTF_SizeUTF8
 
 import game_framework
 import records
+import title_mode
 from character_data import CHARACTER_TYPES
 
 # 랭킹 글자 (위쪽 가운데, 원래 그림의 이 배율)
@@ -113,7 +114,13 @@ def draw():
 
 
 def handle_events():
-    pass
+    events = get_events()
+    for event in events:
+        if event.type == SDL_QUIT:
+            game_framework.quit()
+        elif event.type == SDL_KEYDOWN and event.key in (SDLK_ESCAPE, SDLK_SPACE, SDLK_RETURN):
+            # 메인 화면으로 돌아감
+            game_framework.change_mode(title_mode)
 
 
 def pause():

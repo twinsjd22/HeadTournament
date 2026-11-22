@@ -4,15 +4,16 @@ from pico2d import *
 
 import game_framework
 import loading_mode
+import ranking_mode
 import select_mode
 import tournament
 
 # 메뉴 글자 (위에서부터 이 순서로 버튼을 놓음)
-MENUS = ('게임 시작', '종료')
+MENUS = ('게임 시작', '랭킹', '종료')
 
 # 첫 번째 버튼 위치와 버튼 사이 간격 (로고는 배경 그림에 들어 있음)
-BUTTON_X, BUTTON_Y = 640, 250
-BUTTON_GAP = 90
+BUTTON_X, BUTTON_Y = 640, 270
+BUTTON_GAP = 84
 # 버튼 글자 크기
 FONT_SIZE = 32
 
@@ -92,6 +93,8 @@ def handle_events():
                     loading_mode.next_mode = select_mode
                     loading_mode.tasks = select_mode.preload_tasks()
                     game_framework.change_mode(loading_mode)
+                elif MENUS[selected] == '랭킹':
+                    game_framework.change_mode(ranking_mode)
                 else:
                     game_framework.quit()
 
