@@ -7,6 +7,8 @@ import game_framework
 import select_mode
 import game_world
 import loading_mode
+import name_mode
+import records
 import title_mode
 import tournament
 from background import Background
@@ -350,18 +352,53 @@ def start_next_match():
     game_framework.change_mode(loading_mode)
 
 
-def next_after_match():
-    # 경기가 끝난 뒤 Space: 이기면 다음 라운드 (결승에서 이기면 메인 화면, 우승 화면은 나중에),
-    # 지면 같은 캐릭터로 32강부터 다시
-    won = match.score_left > match.score_right
-    if won and tournament.is_final():
-        game_framework.change_mode(title_mode)
-        return
-    if won:
-        tournament.next_round()
-    else:
-        tournament.start()
+def restart_tournament():
+    # 같은 캐릭터로 32강부터 다시
+    tournament.start()
     start_next_match()
+
+
+def go_to_title():
+    game_framework.change_mode(title_mode)
+
+
+def end_tournament(next_action):
+    # 토너먼트가 끝났을 때 (지거나 우승): 기록이 랭킹에 들면 닉네임 패널을 띄우고, 입력이 끝나면 next_action
+    won = match.score_left > match.score_right
+    # 이긴 경기 수: 진 경기는 빼고, 우승이면 결승까지 모두
+    wins = tournament.round_index + (1 if won else 0)
+    if not records.is_ranked(wins, tournament.goals_for, tournament.goals_against):
+        next_action()
+        return
+
+    def after_input():
+        # 닉네임 패널을 내리고 고른 다음 화면으로
+        game_framework.pop_mode()
+        next_action()
+
+    name_mode.wins = wins
+    name_mode.after_input = after_input
+    # 닉네임 패널에 가려지지 않게 결과 패널과 안내는 숨기고, 경기 화면 위에 닉네임 패널을 올림
+    result_board.show_panel = False
+    game_framework.push_mode(name_mode)
+
+
+def next_after_match(key):
+    # 경기가 끝난 뒤 Space / ESC
+    # 이기면 Space로 다음 라운드, ESC로 메인 (토너먼트를 그만두면 기록하지 않음)
+    # 지거나 우승하면 토너먼트가 끝나 기록을 남김: 지고 Space면 32강부터 다시, 그 밖에는 메인
+    won = match.score_left > match.score_right
+    if won and not tournament.is_final():
+        if key == SDLK_SPACE:
+            tournament.next_round()
+            start_next_match()
+        else:
+            go_to_title()
+        return
+    if not won and key == SDLK_SPACE:
+        end_tournament(restart_tournament)
+    else:
+        end_tournament(go_to_title)
 
 
 def handle_events():
@@ -373,10 +410,10 @@ def handle_events():
             game_framework.quit()
         elif match.over:
             # 경기가 끝나면 선수는 움직이지 않고, Space로 다음 경기, ESC로 메인 화면
-            if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
-                next_after_match()
-            elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
-                game_framework.change_mode(title_mode)
+            if event.type == SDL_KEYDOWN and event.key in (SDLK_SPACE, SDLK_ESCAPE):
+                next_after_match(event.key)
+                # 화면이 바뀌었으므로 남은 입력은 처리하지 않음
+                return
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             game_framework.quit()
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:

@@ -39,6 +39,8 @@ class ChampionBoard:
     def __init__(self):
         # 나타난 뒤 지난 시간 (커지기, 빛줄기 회전)
         self.time = 0.0
+        # 아래 안내를 보여 줄지 (위에 닉네임 패널이 뜨면 숨김)
+        self.show_panel = True
         # 떨어지고 있는 꽃가루 조각들과 다음 조각을 뿌릴 때까지 남은 시간
         self.confetti = [Confetti(random.uniform(0, 1280), random.uniform(0, 720)) for _ in range(CONFETTI_START)]
         self.confetti_wait = 0.0
@@ -79,5 +81,7 @@ class ChampionBoard:
             piece.draw()
 
         # 아래 안내 (한글은 글자 크기만큼, 나머지는 절반 남짓으로 폭을 어림해 가운데 맞춤)
+        if not self.show_panel:
+            return
         width = sum(HINT_FONT_SIZE if ord(c) > 127 else HINT_FONT_SIZE * 0.55 for c in HINT_TEXT)
         ChampionBoard.font.draw(640 - width / 2, HINT_Y, HINT_TEXT, (255, 255, 255))

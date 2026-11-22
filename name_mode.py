@@ -125,9 +125,12 @@ def handle_events():
         elif event.type == SDL_KEYDOWN:
             if event.key in (SDLK_RETURN, SDLK_KP_ENTER):
                 save()
+                # 화면이 바뀌었으므로 남은 입력은 처리하지 않음
+                return
             elif event.key == SDLK_ESCAPE:
                 # 기록을 남기지 않고 넘어감
                 after_input()
+                return
             elif event.key == SDLK_BACKSPACE:
                 # 마지막 한 글자를 지움
                 name = name[:-1]

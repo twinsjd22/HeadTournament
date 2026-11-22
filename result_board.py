@@ -49,6 +49,8 @@ class ResultBoard:
         self.score_left, self.score_right = score_left, score_right
         # 나타난 뒤 지난 시간 (글자 커지기, 빛줄기 회전)
         self.time = 0.0
+        # 패널과 안내를 보여 줄지 (위에 닉네임 패널이 뜨면 가려지지 않게 숨김)
+        self.show_panel = True
         if ResultBoard.dim == None:
             ResultBoard.dim = load_image('resource/result_dim_light.png')
             ResultBoard.rays = load_image('resource/result_rays.png')
@@ -89,6 +91,8 @@ class ResultBoard:
         logo.draw(LOGO_X, LOGO_Y, logo.w * LOGO_SCALE * pop, logo.h * LOGO_SCALE * pop)
 
         # 결과 패널: 위 띠에 라운드, 가운데 칸에 점수, 아래에 안내
+        if not self.show_panel:
+            return
         panel = ResultBoard.win_panel if self.won else ResultBoard.lose_panel
         panel.draw(PANEL_X, PANEL_Y)
         round_text = f'{tournament.round_name()}  {tournament.round_index + 1} / {len(tournament.ROUNDS)} 경기'
