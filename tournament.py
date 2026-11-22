@@ -12,12 +12,24 @@ AI_REACTION_DELAYS = (0.3, 0.2, 0.1, 0.05, 0.0)
 
 # 지금 라운드 번호 (ROUNDS 안의 위치)
 round_index = 0
+# 이번 토너먼트에서 넣은 골과 먹은 골의 합 (기록 저장의 득실차에 씀)
+goals_for = 0
+goals_against = 0
 
 
 def start():
-    # 새 토너먼트를 32강부터 시작
-    global round_index
+    # 새 토너먼트를 32강부터 시작 (득점과 실점 합도 처음부터)
+    global round_index, goals_for, goals_against
     round_index = 0
+    goals_for = 0
+    goals_against = 0
+
+
+def add_match_score(scored, conceded):
+    # 끝난 경기의 점수를 이번 토너먼트 합에 더함
+    global goals_for, goals_against
+    goals_for += scored
+    goals_against += conceded
 
 
 def round_name():

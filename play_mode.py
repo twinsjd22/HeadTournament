@@ -326,6 +326,8 @@ def show_result():
     # 점수판, 타이머 같은 UI를 모두 치우고, 그 자리에 결과를 띄움 (경기장은 그대로)
     global result_board
     won = match.score_left > match.score_right
+    # 이번 경기 점수를 토너먼트 합에 더함 (경기가 끝날 때 한 번만 불림)
+    tournament.add_match_score(match.score_left, match.score_right)
     # 결승에서 이기면 우승 장면, 아니면 승리 / 패배 결과
     if won and tournament.is_final():
         result_board = ChampionBoard()
