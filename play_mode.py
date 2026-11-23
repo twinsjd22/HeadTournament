@@ -27,6 +27,7 @@ from round_board import RoundBoard
 from result_board import ResultBoard
 from champion_board import ChampionBoard
 from countdown import Countdown
+from goal_effect import GoalEffect
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -50,8 +51,10 @@ player_side = 1
 match = None
 # P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
 paused = False
-# 경기 시작과 골 뒤의 3, 2, 1, 시작! 카운트다운
+# 경기 시작 때의 3, 2, 1, 시작! 카운트다운
 countdown = None
+# 골이 들어갔을 때 잠깐 띄우는 GOAL! 글자
+goal_effect = None
 # 경기가 끝나면 보여 주는 결과 또는 우승 장면 (끝나기 전에는 None)
 result_board = None
 
@@ -61,7 +64,7 @@ def preload_tasks():
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
              ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left'),
-             lambda: ResultBoard(True, 0, 0), ChampionBoard, Countdown]
+             lambda: ResultBoard(True, 0, 0), ChampionBoard, Countdown, GoalEffect]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -127,6 +130,7 @@ def init():
     global paused
     global result_board
     global countdown
+    global goal_effect
 
     # 멈춤 상태로 끝난 경기가 있어도 새 경기는 진행 상태로 시작
     paused = False
@@ -186,6 +190,10 @@ def init():
     game_world.add_object(countdown, 2)
     countdown.start()
 
+    # 골 표시 (골이 들어가면 시작)
+    goal_effect = GoalEffect()
+    game_world.add_object(goal_effect, 2)
+
     # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
     match = Match()
     game_world.add_object(match, 2)
@@ -202,7 +210,13 @@ def update():
     # 멈춤 중이면 더 이상 진행하지 않음 (화면은 멈춘 채로 그려짐)
     if paused:
         return
-    # 경기가 끝나면 경기장은 멈추고 결과만 움직임
+    # GOAL! 표시 중: 경기장은 그대로 움직여 공이 골망으로 들어가고, 표시가 끝나면 처음 자리로
+    if goal_effect.is_playing():
+        game_world.update()
+        if not goal_effect.is_playing():
+            reset_positions()
+        return
+    # 경기가 끝나면 경기장은 멈추고 결과만 움직임 (마지막 골이면 GOAL! 표시가 끝난 뒤)
     if match.over:
         if result_board is None:
             show_result()
@@ -335,7 +349,10 @@ def update():
                 player.add_gauge(GAUGE_SCORE)
                 opponent.add_gauge(GAUGE_CONCEDE)
             print(f'골! ({goal.side} 골대) {match.score_left} : {match.score_right}')
-            reset_positions()
+            # 바로 자리로 돌아가지 않고 GOAL! 글자를 잠깐 보여 줌 (끝나면 처음 자리로)
+            countdown.stop()
+            goal_effect.start()
+            break
 
 
 def show_result():

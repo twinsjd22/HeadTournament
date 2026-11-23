@@ -25,6 +25,10 @@ class Countdown:
     def start(self):
         self.time = 0.0
 
+    def stop(self):
+        # 남은 "시작!" 글자도 바로 지움 (시작하자마자 골이 들어가 GOAL! 글자와 겹치지 않게)
+        self.time = None
+
     def is_counting(self):
         # 3, 2, 1을 세는 중인지 (이때는 경기가 멈춤, "시작!"이 뜨면 경기 시작)
         return self.time is not None and self.time < NUMBER_TIME * 3
