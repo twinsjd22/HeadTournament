@@ -26,6 +26,7 @@ from gauge_board import GaugeBoard
 from round_board import RoundBoard
 from result_board import ResultBoard
 from champion_board import ChampionBoard
+from countdown import Countdown
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -49,6 +50,8 @@ player_side = 1
 match = None
 # P 키로 게임을 잠시 멈췄는지 (데모와 확인용)
 paused = False
+# 경기 시작과 골 뒤의 3, 2, 1, 시작! 카운트다운
+countdown = None
 # 경기가 끝나면 보여 주는 결과 또는 우승 장면 (끝나기 전에는 None)
 result_board = None
 
@@ -58,7 +61,7 @@ def preload_tasks():
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
              ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left'),
-             lambda: ResultBoard(True, 0, 0), ChampionBoard]
+             lambda: ResultBoard(True, 0, 0), ChampionBoard, Countdown]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -123,6 +126,7 @@ def init():
     global match
     global paused
     global result_board
+    global countdown
 
     # 멈춤 상태로 끝난 경기가 있어도 새 경기는 진행 상태로 시작
     paused = False
@@ -177,6 +181,11 @@ def init():
     opponent_gauge = GaugeBoard(opponent, 'right')
     game_world.add_object(opponent_gauge, 2)
 
+    # 처음에 3, 2, 1을 세고 경기 시작 (UI보다 앞에 보이게 마지막에 넣음)
+    countdown = Countdown()
+    game_world.add_object(countdown, 2)
+    countdown.start()
+
     # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
     match = Match()
     game_world.add_object(match, 2)
@@ -198,6 +207,10 @@ def update():
         if result_board is None:
             show_result()
         result_board.update()
+        return
+    # 3, 2, 1을 세는 동안은 경기장이 멈추고 카운트다운만 움직임
+    if countdown.is_counting():
+        countdown.update()
         return
 
     game_world.update()
@@ -422,6 +435,9 @@ def handle_events():
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
+        elif countdown.is_counting() and event.type == SDL_KEYDOWN and event.key not in (SDLK_LEFT, SDLK_RIGHT):
+            # 3, 2, 1을 세는 동안은 점프, 킥, 스킬을 받지 않음 (방향키 누름 / 뗌만 기억해 둠)
+            pass
         else:
             player.handle_event(event)
 
