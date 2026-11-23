@@ -8,6 +8,7 @@ import select_mode
 import game_world
 import loading_mode
 import name_mode
+import pause_mode
 import records
 import title_mode
 import tournament
@@ -415,7 +416,9 @@ def handle_events():
                 # 화면이 바뀌었으므로 남은 입력은 처리하지 않음
                 return
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
-            game_framework.quit()
+            # 경기 중 ESC: 게임을 끄지 않고 멈춘 경기장 위에 일시정지 메뉴를 띄움
+            game_framework.push_mode(pause_mode)
+            return
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
@@ -428,4 +431,5 @@ def pause():
 
 
 def resume():
-    pass
+    # 일시정지 메뉴에서 돌아오면 방향키를 뗀 것으로 함 (메뉴가 떠 있는 동안 뗀 키 때문에 계속 달리지 않게)
+    player.release_arrow_keys()

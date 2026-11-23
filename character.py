@@ -359,6 +359,13 @@ class Character:
             self.frame = 5
             self.overhead_landed = True
 
+    def release_arrow_keys(self):
+        # 방향키를 모두 뗀 것으로 함 (일시정지 메뉴가 떠 있는 동안 뗀 키는 이 선수에게 오지 않기 때문)
+        self.left_pressed = False
+        self.right_pressed = False
+        self.dir = 0
+        self.move_stop()
+
     def reset(self, x, face_dir):
         # 득점 후 처음 자리로 돌아감
         # 하던 동작(태클, 넘어짐, 트릭스터, 킥 등)도 끝내고 서 있는 상태에서 다시 시작
