@@ -3,24 +3,45 @@
 from pico2d import *
 
 import game_framework
+import game_world
 import play_mode
 
 # 메뉴 (위에서부터 패널 그림의 버튼 순서와 같음)
 MENUS = ('계속하기', '다시 시작', '메인 메뉴')
 
+# 일시정지 글자 (위쪽 가운데, 원래 그림의 이 배율)
+TITLE_X, TITLE_Y = 640, 600
+TITLE_SCALE = 0.55
+# 메뉴 패널 (480x340) 가운데 위치, 패널 안 첫 버튼 가운데 높이와 버튼 간격 (패널 그림의 왼쪽 위 기준)
+PANEL_X, PANEL_Y = 640, 320
+PANEL_TOP = PANEL_Y + 170
+FIRST_BUTTON_Y = 62
+BUTTON_GAP = 86
+
 # 지금 고르고 있는 메뉴 번호 (MENUS 안의 위치)
 selected = 0
+dim = None
+title = None
+panel = None
+cursor = None
 
 
 def init():
-    global selected
+    global selected, dim, title, panel, cursor
 
     # 띄울 때마다 "계속하기"부터
     selected = 0
+    dim = load_image('resource/result_dim_light.png')
+    title = load_image('resource/pause_title.png')
+    panel = load_image('resource/pause_panel.png')
+    cursor = load_image('resource/pause_cursor.png')
 
 
 def finish():
-    pass
+    global dim, title, panel, cursor
+
+    # 일시정지 화면에서만 쓰는 이미지를 놓아 줌
+    dim = title = panel = cursor = None
 
 
 def update():
@@ -28,7 +49,18 @@ def update():
 
 
 def draw():
-    pass
+    clear_canvas()
+    # 뒤에는 멈춘 경기장(배경, 선수, 공, 골대)만 그리고 점수판 같은 UI 레이어는 빼서 일시정지 글자와 겹치지 않게 함
+    for layer in game_world.world[:2]:
+        for o in layer:
+            o.draw()
+    # 어둡게 덮은 뒤 일시정지 글자와 메뉴 패널
+    dim.draw(640, 360)
+    title.draw(TITLE_X, TITLE_Y, title.w * TITLE_SCALE, title.h * TITLE_SCALE)
+    panel.draw(PANEL_X, PANEL_Y)
+    # 고른 버튼 위에 주황 테두리
+    cursor.draw(PANEL_X, PANEL_TOP - (FIRST_BUTTON_Y + selected * BUTTON_GAP))
+    update_canvas()
 
 
 def run_menu():
