@@ -125,6 +125,8 @@ class Character:
         self.kick_hit = False
         # 트릭스터로 공을 몰고 가는 중인지
         self.dribble = False
+        # 방금 필살 스킬을 썼는지 (경기 화면의 컷인용)
+        self.skill_used = False
         if char_type not in Character.images:
             Character.images[char_type] = load_image(CHARACTER_TYPES[char_type]['sheet'])
         self.image = Character.images[char_type]
@@ -393,6 +395,8 @@ class Character:
         elif self.char_type != 'power' and self.state not in ('IDLE', 'RUN'):
             return
         self.gauge = 0
+        # 경기 화면이 컷인을 띄울 수 있게 알림 (경기 화면이 보고 나서 다시 False로)
+        self.skill_used = True
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
         if self.char_type == 'power':
             self.power_shot = True

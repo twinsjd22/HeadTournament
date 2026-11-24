@@ -28,6 +28,7 @@ from result_board import ResultBoard
 from champion_board import ChampionBoard
 from countdown import Countdown
 from goal_effect import GoalEffect
+from cut_in import CutIn
 from character_data import CHARACTER_TYPES
 
 # 두 선수 중심 사이의 최소 거리 (머리 사이로 공이 빠져나갈 틈이 생기는 거리)
@@ -55,6 +56,8 @@ paused = False
 countdown = None
 # 골이 들어갔을 때 잠깐 띄우는 GOAL! 글자
 goal_effect = None
+# 필살기를 쓰면 띠를 타고 초상화와 기술 이름이 지나가는 컷인
+cut_in = None
 # 경기가 끝나면 보여 주는 결과 또는 우승 장면 (끝나기 전에는 None)
 result_board = None
 
@@ -64,7 +67,7 @@ def preload_tasks():
     # (경기 화면에 들어올 때는 이미 불러 둔 것을 그대로 씀)
     tasks = [Background, Ground, lambda: Goal('left'), Ball, lambda: HitEffect(0, 0),
              ScoreBoard, TimerBoard, RoundBoard, lambda: GaugeBoard(None, 'left'),
-             lambda: ResultBoard(True, 0, 0), ChampionBoard, Countdown, GoalEffect]
+             lambda: ResultBoard(True, 0, 0), ChampionBoard, Countdown, GoalEffect, CutIn]
     # 선수 시트는 유형마다 한 장씩
     for key in CHARACTER_TYPES:
         tasks.append(lambda key=key: Character(key, 0, 1))
@@ -131,6 +134,7 @@ def init():
     global result_board
     global countdown
     global goal_effect
+    global cut_in
 
     # 멈춤 상태로 끝난 경기가 있어도 새 경기는 진행 상태로 시작
     paused = False
@@ -194,6 +198,10 @@ def init():
     goal_effect = GoalEffect()
     game_world.add_object(goal_effect, 2)
 
+    # 필살기 컷인 (UI와 다른 연출보다 앞에 보이게 마지막에 넣음)
+    cut_in = CutIn()
+    game_world.add_object(cut_in, 2)
+
     # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
     match = Match()
     game_world.add_object(match, 2)
@@ -225,6 +233,16 @@ def update():
     # 3, 2, 1을 세는 동안은 경기장이 멈추고 카운트다운만 움직임
     if countdown.is_counting():
         countdown.update()
+        return
+    # 필살기를 쓰면 컷인을 띄우고, 컷인이 지나가는 동안은 경기장이 멈춤 (필살기는 컷인이 끝난 뒤 이어짐)
+    for character, side in ((player, 1), (opponent, -1)):
+        if character.skill_used:
+            character.skill_used = False
+            # 남은 "시작!" 글자는 지우고 컷인 시작
+            countdown.stop()
+            cut_in.start(character, side)
+    if cut_in.is_playing():
+        cut_in.update()
         return
 
     game_world.update()
@@ -453,8 +471,8 @@ def handle_events():
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
-        elif countdown.is_counting() and event.type == SDL_KEYDOWN and event.key not in (SDLK_LEFT, SDLK_RIGHT):
-            # 3, 2, 1을 세는 동안은 점프, 킥, 스킬을 받지 않음 (방향키 누름 / 뗌만 기억해 둠)
+        elif (countdown.is_counting() or cut_in.is_playing()) and event.type == SDL_KEYDOWN and event.key not in (SDLK_LEFT, SDLK_RIGHT):
+            # 3, 2, 1을 세는 동안이나 컷인 중에는 점프, 킥, 스킬을 받지 않음 (방향키 누름 / 뗌만 기억해 둠)
             pass
         else:
             player.handle_event(event)
