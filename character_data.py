@@ -25,4 +25,8 @@ CHARACTER_TYPES = {
                'portrait': 'resource/portrait_aerial.png',
                'speed': 3, 'power': 4, 'skill': '오버헤드킥',
                'desc': '높이 뛰어올라 공중에서 공을 내리꽂는다'},
+    'giant': {'name': '거인형', 'sheet': 'resource/sheet_giant.png',
+              'portrait': 'resource/portrait_giant.png',
+              'speed': 2, 'power': 4, 'skill': '거대화',
+              'desc': '잠시 동안 몸이 커져 공중볼을 따낸다'},
 }
