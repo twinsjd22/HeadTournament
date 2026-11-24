@@ -29,4 +29,8 @@ CHARACTER_TYPES = {
               'portrait': 'resource/portrait_giant.png',
               'speed': 2, 'power': 4, 'skill': '거대화',
               'desc': '잠시 동안 몸이 커져 공중볼을 따낸다'},
+    'curve': {'name': '감아차기형', 'sheet': 'resource/sheet_curve.png',
+              'portrait': 'resource/portrait_curve.png',
+              'speed': 3, 'power': 4, 'skill': '드라이브슛',
+              'desc': '높이 떴다가 골대 앞에서 뚝 떨어진다'},
 }
