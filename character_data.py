@@ -33,4 +33,8 @@ CHARACTER_TYPES = {
               'portrait': 'resource/portrait_curve.png',
               'speed': 3, 'power': 4, 'skill': '드라이브슛',
               'desc': '높이 떴다가 골대 앞에서 뚝 떨어진다'},
+    'knuckle': {'name': '무회전형', 'sheet': 'resource/sheet_knuckle.png',
+                'portrait': 'resource/portrait_knuckle.png',
+                'speed': 4, 'power': 3, 'skill': '무회전슛',
+                'desc': '흔들리며 날아가 막기 어렵다'},
 }
