@@ -88,10 +88,23 @@ OVERHEAD_FOOT_Y = 62
 OVERHEAD_FOOT_RADIUS = 30
 
 
+# 거대화 (거인형 필살 스킬): 기합 동작(grow 줄 6칸)을 보여 주는 시간(초), 커진 채 지내는 시간(초), 커지는 배율
+GROW_TIME = 0.4
+GIANT_TIME = 4.0
+GIANT_SCALE = 1.5
+# 거대화가 끝날 때 원래 크기로 줄어드는 시간(초)
+SHRINK_TIME = 0.2
+
+
 # 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워, 신규 유형의 필살기)
 STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7,
-              'GUARD': 8, 'OVERHEAD': 8}
+              'GUARD': 8, 'OVERHEAD': 8, 'GROW': 8}
 
+
+def draw_debug_circle(circle):
+    # 충돌 확인용 빨간 원 (pico2d의 draw_circle은 정수만 받으므로 거대화 중 소수가 된 값을 정수로 바꿈)
+    x, y, r = circle
+    draw_circle(int(x), int(y), int(r), 255, 0, 0)
 
 class Character:
     # 유형별 시트 이미지 (같은 유형끼리는 한 번만 불러와 공유)
@@ -128,6 +141,8 @@ class Character:
         self.dribble = False
         # 방금 필살 스킬을 썼는지 (경기 화면의 컷인용)
         self.skill_used = False
+        # 거대화가 남은 시간 (0이면 원래 크기)
+        self.giant_time = 0.0
         if char_type not in Character.images:
             Character.images[char_type] = load_image(CHARACTER_TYPES[char_type]['sheet'])
         self.image = Character.images[char_type]
@@ -137,11 +152,12 @@ class Character:
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         # TACKLE: 하드태클 (수비형 필살 스킬, 앞으로 미끄러지며 대시)
         # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
+        # GROW: 거대화 기합 (거인형 필살 스킬, 잠깐 제자리에서 커진 뒤 평소처럼 움직이며 커진 채 지냄)
         # OVERHEAD: 오버헤드킥 (공중형 필살 스킬, 점프 중에 몸을 뒤집어 차고 등으로 착지)
         # GUARD: 철벽 방어 (골키퍼형 필살 스킬, 1초 동안 보호막으로 주변 공을 튕겨 냄, 이때는 태클에 넘어지지 않음)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD', 'OVERHEAD'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD', 'OVERHEAD', 'GROW'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -157,6 +173,8 @@ class Character:
                 {'trigger': 'guard_end', 'source': 'GUARD', 'dest': 'IDLE'},
                 {'trigger': 'overhead', 'source': 'JUMP', 'dest': 'OVERHEAD'},
                 {'trigger': 'overhead_end', 'source': 'OVERHEAD', 'dest': 'IDLE'},
+                {'trigger': 'grow', 'source': ['IDLE', 'RUN'], 'dest': 'GROW'},
+                {'trigger': 'grow_end', 'source': 'GROW', 'dest': 'IDLE'},
                 {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER'], 'dest': 'FALL'},
                 {'trigger': 'get_up', 'source': 'FALL', 'dest': 'IDLE'},
                 {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
@@ -211,6 +229,12 @@ class Character:
         # 한 번 뛰어올라 공은 한 번만 참
         self.kick_hit = False
 
+    def on_enter_GROW(self):
+        self.frame = 0
+        self.grow_time = 0.0
+        # 기합 동작이 끝난 뒤부터 커진 채 지내는 시간
+        self.giant_time = GROW_TIME + GIANT_TIME
+
     def on_enter_FALL(self):
         self.frame = 0
         self.fall_time = FALL_TIME
@@ -256,6 +280,7 @@ class Character:
 
     def update(self):
         self.touch_cooldown = max(self.touch_cooldown - game_framework.frame_time, 0)
+        self.giant_time = max(self.giant_time - game_framework.frame_time, 0)
 
         if self.state == 'IDLE':
             self.frame = (self.frame + IDLE_FRAMES_PER_SECOND * game_framework.frame_time) % 4
@@ -321,6 +346,15 @@ class Character:
                     self.move_start()
         elif self.state == 'OVERHEAD':
             self.update_overhead()
+        elif self.state == 'GROW':
+            # 제자리에서 힘을 주는 6칸을 한 번 보여 주고, 그동안 점점 커짐
+            self.grow_time += game_framework.frame_time
+            self.frame = min(self.grow_time / GROW_TIME * 6, 5)
+            if self.grow_time >= GROW_TIME:
+                self.grow_end()
+                if self.dir != 0:
+                    self.face_dir = self.dir
+                    self.move_start()
         elif self.state == 'GUARD':
             # 팔을 벌려 보호막을 펼쳤다가 거두는 6칸을 한 번 보여 줌
             self.frame = min(self.frame + GUARD_FRAMES_PER_SECOND * game_framework.frame_time, 5)
@@ -376,6 +410,8 @@ class Character:
         self.vy = 0
         # 몰고 가던 공도 놓음 (되돌린 공이 다시 밀려나지 않게 함)
         self.dribble = False
+        # 거대화도 끝내고 원래 크기로
+        self.giant_time = 0.0
         self.face_dir = face_dir
         self.frame = 0
         self.machine.set_state('IDLE')
@@ -409,6 +445,8 @@ class Character:
             self.guard()
         elif self.char_type == 'aerial':
             self.overhead()
+        elif self.char_type == 'giant':
+            self.grow()
 
     def touch_ball(self):
         # 공을 건드리면 게이지 증가 (쿨다운 중이면 오르지 않음)
@@ -420,10 +458,24 @@ class Character:
         # 게이지를 올리되 최대값을 넘지 않게 함
         self.gauge = min(self.gauge + amount, GAUGE_MAX)
 
+    def get_scale(self):
+        # 지금 크기 배율: 기합 동안 점점 커지고, 커진 채 지내다가, 끝날 때 원래 크기로 줄어듦
+        if self.state == 'GROW':
+            return 1 + (GIANT_SCALE - 1) * min(self.grow_time / GROW_TIME, 1.0)
+        if self.giant_time > 0:
+            return 1 + (GIANT_SCALE - 1) * min(self.giant_time / SHRINK_TIME, 1.0)
+        return 1.0
+
+    def scaled(self, dx, dy):
+        # 몸 중심 기준 위치 (dx, dy)를 크기 배율에 맞게 바꿈 (발끝 y - 80을 기준으로 커져서 발은 바닥에 붙어 있음)
+        scale = self.get_scale()
+        return self.x + dx * scale, self.y - 80 + (dy + 80) * scale
+
     def get_head(self):
+        scale = self.get_scale()
         if self.state == 'RUN':
-            return self.x + self.face_dir * 16, self.y + 39, 30
-        return self.x + self.face_dir * 2, self.y + 39, 30
+            return *self.scaled(self.face_dir * 16, 39), 30 * scale
+        return *self.scaled(self.face_dir * 2, 39), 30 * scale
 
     def get_guard_circle(self):
         # 철벽 방어 보호막 원 (중심 x, 중심 y, 반지름)
@@ -434,8 +486,10 @@ class Character:
         return self.x - self.face_dir * OVERHEAD_FOOT_X, self.y + OVERHEAD_FOOT_Y, OVERHEAD_FOOT_RADIUS
 
     def get_bb(self):
-        # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위
-        return self.x - 18, self.y - 80, self.x + 18, self.y + 10
+        # 몸통 영역 (머리 원 아래부터 발끝까지): 왼쪽, 아래, 오른쪽, 위 (거대화 중에는 커짐)
+        left, bottom = self.scaled(-18, -80)
+        right, top = self.scaled(18, 10)
+        return left, bottom, right, top
 
     def get_tackle_bb(self):
         # 하드태클로 뻗은 다리 영역 (바닥 가까이, 바라보는 쪽 앞): 왼쪽, 아래, 오른쪽, 위
@@ -444,7 +498,7 @@ class Character:
         return self.x - 75, self.y - 80, self.x + 20, self.y - 30
 
     def get_foot(self):
-        return self.x + self.face_dir * 37, self.y - 22, 20
+        return *self.scaled(self.face_dir * 37, -22), 20 * self.get_scale()
 
     def draw(self):
         flip = '' if self.face_dir == 1 else 'h'
@@ -457,19 +511,21 @@ class Character:
         # (기존 3종은 8줄, 신규 2종은 자기 필살기 줄이 하나 더 있는 9줄이라 줄 수를 이미지 높이로 계산)
         row = STATE_ROWS[self.state]
         sheet_rows = self.image.h // 256
+        # 거대화 중에는 발끝을 바닥에 둔 채 크게 그림
+        scale = self.get_scale()
         self.image.clip_composite_draw(int(self.frame) * 256, (sheet_rows - 1 - row) * 256, 256, 256,
-                                       0, flip, self.x, self.y, 160, 160)
+                                       0, flip, self.x, self.y + 80 * (scale - 1), 160 * scale, 160 * scale)
 
         # 충돌 확인용 표시 (F1로 켰을 때만)
         if not debug_view.show_bounding:
             return
-        draw_circle(*self.get_head(), 255, 0, 0)
+        draw_debug_circle(self.get_head())
         draw_rectangle(*self.get_bb())
         if self.state in ('KICK', 'POWER'):
-            draw_circle(*self.get_foot(), 255, 0, 0)
+            draw_debug_circle(self.get_foot())
         if self.state == 'OVERHEAD' and int(self.frame) == 3:
-            draw_circle(*self.get_overhead_foot(), 255, 0, 0)
+            draw_debug_circle(self.get_overhead_foot())
         if self.state == 'TACKLE':
             draw_rectangle(*self.get_tackle_bb())
         if self.state == 'GUARD':
-            draw_circle(*self.get_guard_circle(), 255, 0, 0)
+            draw_debug_circle(self.get_guard_circle())
