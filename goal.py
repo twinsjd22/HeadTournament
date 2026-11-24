@@ -1,5 +1,7 @@
 from pico2d import load_image, draw_rectangle
 
+import debug_view
+
 
 class Goal:
     image_left = None
@@ -36,4 +38,6 @@ class Goal:
             Goal.image_left.draw(170 // 2, 80 + 230 // 2)
         else:
             Goal.image_right.draw(1280 - 170 // 2, 80 + 230 // 2)
-        draw_rectangle(*self.get_bb())
+        # 크로스바 충돌 확인용 표시 (F1로 켰을 때만)
+        if debug_view.show_bounding:
+            draw_rectangle(*self.get_bb())

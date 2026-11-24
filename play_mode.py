@@ -3,6 +3,7 @@ import sys
 
 from pico2d import *
 
+import debug_view
 import game_framework
 import select_mode
 import game_world
@@ -472,6 +473,9 @@ def handle_events():
         elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
             # P 키를 누를 때마다 멈춤과 다시 진행이 바뀜
             paused = not paused
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_F1:
+            # F1 키를 누를 때마다 충돌 확인용 표시를 켜고 끔
+            debug_view.show_bounding = not debug_view.show_bounding
         elif (countdown.is_counting() or cut_in.is_playing()) and event.type == SDL_KEYDOWN and event.key not in (SDLK_LEFT, SDLK_RIGHT):
             # 3, 2, 1을 세는 동안이나 컷인 중에는 점프, 킥, 스킬을 받지 않음 (방향키 누름 / 뗌만 기억해 둠)
             pass

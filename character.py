@@ -1,6 +1,7 @@
 from pico2d import load_image, clamp, draw_circle, draw_rectangle, SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_SPACE, SDLK_z
 from transitions import Machine
 
+import debug_view
 import game_framework
 from character_data import CHARACTER_TYPES
 
@@ -458,6 +459,10 @@ class Character:
         sheet_rows = self.image.h // 256
         self.image.clip_composite_draw(int(self.frame) * 256, (sheet_rows - 1 - row) * 256, 256, 256,
                                        0, flip, self.x, self.y, 160, 160)
+
+        # 충돌 확인용 표시 (F1로 켰을 때만)
+        if not debug_view.show_bounding:
+            return
         draw_circle(*self.get_head(), 255, 0, 0)
         draw_rectangle(*self.get_bb())
         if self.state in ('KICK', 'POWER'):
