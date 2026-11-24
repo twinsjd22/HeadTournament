@@ -439,8 +439,9 @@ def handle_events():
     for event in events:
         if event.type == SDL_QUIT:
             game_framework.quit()
-        elif match.over:
-            # 경기가 끝나면 선수는 움직이지 않고, Space로 다음 경기, ESC로 메인 화면
+        elif result_board is not None:
+            # 결과 화면이 뜨면 선수는 움직이지 않고, Space로 다음 경기, ESC로 메인 화면
+            # (마지막 골이면 GOAL! 표시가 끝난 뒤에 결과 화면이 뜨므로 경기가 끝났는지가 아니라 결과 화면으로 확인)
             if event.type == SDL_KEYDOWN and event.key in (SDLK_SPACE, SDLK_ESCAPE):
                 next_after_match(event.key)
                 # 화면이 바뀌었으므로 남은 입력은 처리하지 않음
