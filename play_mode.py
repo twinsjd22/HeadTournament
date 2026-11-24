@@ -121,6 +121,7 @@ def reset_positions():
     opponent.reset(960, -1)
     ball.x, ball.y = 640, 400
     ball.vx, ball.vy = 0, 0
+    ball.clear_trail()
 
 
 def init():

@@ -81,6 +81,14 @@ OVERHEAD_SPEED_X_PPS = (OVERHEAD_SPEED_X_MPS * PIXEL_PER_METER)
 OVERHEAD_SPEED_DOWN_MPS = 6.0
 OVERHEAD_SPEED_DOWN_PPS = (OVERHEAD_SPEED_DOWN_MPS * PIXEL_PER_METER)
 
+# 파워슛 잔상: 세게 찬 공 뒤에 남기는 반투명한 공의 수, 잔상끼리의 시간 간격(초), 잔상을 남기는 최대 시간(초)
+TRAIL_COUNT = 6
+TRAIL_INTERVAL = 0.025
+TRAIL_TIME = 0.8
+# 공이 이 속도보다 느려지면 잔상을 멈춤, 가장 가까운 잔상의 불투명도 (멀어질수록 옅어짐)
+TRAIL_STOP_SPEED_PPS = (4.0 * PIXEL_PER_METER)
+TRAIL_OPACITY = 0.45
+
 # 회전 애니메이션: 공 둘레를 8칸으로 나눈 거리만큼 굴러가면 한 칸
 PIXELS_PER_FRAME = (2 * math.pi * 32 / 8)
 
@@ -98,6 +106,10 @@ class Ball:
         self.pingpong = 0
         # 남은 머리 충돌 무시 시간
         self.head_ignore = 0.0
+        # 파워슛 잔상: 남은 잔상 시간, 지난 위치들 (최근 것이 앞), 다음 위치를 남길 때까지 남은 시간
+        self.trail_time = 0.0
+        self.trail = []
+        self.trail_wait = 0.0
         if Ball.image == None:
             Ball.image = load_image('resource/ball_sheet.png')
 
@@ -127,6 +139,33 @@ class Ball:
             self.vx = -self.vx * 0.7
 
         self.frame = (self.frame + self.vx * game_framework.frame_time / PIXELS_PER_FRAME) % 8
+        self.update_trail()
+
+    def start_trail(self):
+        # 파워슛, 파워 헤딩, 오버헤드킥으로 세게 찼을 때 잔상을 남기기 시작
+        self.trail_time = TRAIL_TIME
+        self.trail = []
+        self.trail_wait = 0.0
+
+    def clear_trail(self):
+        # 남은 잔상을 모두 지움 (공을 처음 자리로 옮길 때 잔상이 끌려오지 않게)
+        self.trail_time = 0.0
+        self.trail = []
+
+    def update_trail(self):
+        # 잔상 시간 동안 일정 간격으로 지난 위치를 남기고, 시간이 끝나거나 공이 느려지면 잔상을 하나씩 지움
+        self.trail_time = max(self.trail_time - game_framework.frame_time, 0)
+        if self.trail_time > 0 and math.hypot(self.vx, self.vy) < TRAIL_STOP_SPEED_PPS:
+            self.trail_time = 0
+        self.trail_wait -= game_framework.frame_time
+        if self.trail_wait > 0:
+            return
+        self.trail_wait = TRAIL_INTERVAL
+        if self.trail_time > 0:
+            self.trail.insert(0, (self.x, self.y, int(self.frame)))
+            del self.trail[TRAIL_COUNT:]
+        elif self.trail:
+            self.trail.pop()
 
     def get_circle(self):
         return self.x, self.y, 32
@@ -237,10 +276,12 @@ class Ball:
         # 오버헤드킥: 바라보는 쪽 아래 대각선으로 세게 내리꽂음 (power_rate: 찬 선수의 킥 세기 배율)
         self.vx = face_dir * OVERHEAD_SPEED_X_PPS * power_rate
         self.vy = -OVERHEAD_SPEED_DOWN_PPS * power_rate
+        self.start_trail()
 
     def power_header(self):
         # 파워슛 헤딩: 튕겨 나가는 가로 속도를 파워슛 배율만큼 올림
         self.vx *= POWER_SHOT_RATE
+        self.start_trail()
 
     def kicked(self, face_dir, power_rate, power_shot):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
@@ -249,6 +290,13 @@ class Ball:
         self.vy = KICK_SPEED_Y_PPS * power_rate
         if power_shot:
             self.vx *= POWER_SHOT_RATE
+            self.start_trail()
 
     def draw(self):
+        # 잔상은 오래된 것부터 옅게 그리고, 그 위에 진짜 공 (같은 공 그림의 불투명도만 잠깐 바꿔 그림)
+        for i in range(len(self.trail) - 1, -1, -1):
+            x, y, frame = self.trail[i]
+            Ball.image.opacify(TRAIL_OPACITY * (1 - i / TRAIL_COUNT))
+            Ball.image.clip_draw(frame * 64, 0, 64, 64, x, y)
+        Ball.image.opacify(1.0)
         Ball.image.clip_draw(int(self.frame) * 64, 0, 64, 64, self.x, self.y)
