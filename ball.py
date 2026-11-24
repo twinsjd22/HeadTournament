@@ -81,6 +81,17 @@ OVERHEAD_SPEED_X_PPS = (OVERHEAD_SPEED_X_MPS * PIXEL_PER_METER)
 OVERHEAD_SPEED_DOWN_MPS = 6.0
 OVERHEAD_SPEED_DOWN_PPS = (OVERHEAD_SPEED_DOWN_MPS * PIXEL_PER_METER)
 
+# 드라이브슛: 이 높이까지 높이 떴다가, 꼭대기부터는 중력을 이 배율로 받아 골대 바로 앞으로 뚝 떨어짐
+# (찰 때 상대 골대까지 거리를 보고 가로 속도를 정해서 어디서 차도 같은 모양으로 떨어짐)
+DRIVE_TOP_Y = 480
+DRIVE_DIP_RATE = 3.0
+# 노리는 점: 화면 끝에서 이만큼 안쪽(골대 입구 바로 앞), 이 높이 (크로스바 아래로 지나가 골망으로 들어감)
+DRIVE_TARGET_GAP = 110
+DRIVE_TARGET_Y = 200
+# 가로 속도의 범위 (너무 가까우면 느린 로브, 너무 멀면 빠른 슛이 되지 않게 제한)
+DRIVE_MIN_SPEED_X_PPS = (3.0 * PIXEL_PER_METER)
+DRIVE_MAX_SPEED_X_PPS = (11.0 * PIXEL_PER_METER)
+
 # 파워슛 잔상: 세게 찬 공 뒤에 남기는 반투명한 공의 수, 잔상끼리의 시간 간격(초), 잔상을 남기는 최대 시간(초)
 TRAIL_COUNT = 6
 TRAIL_INTERVAL = 0.025
@@ -106,6 +117,8 @@ class Ball:
         self.pingpong = 0
         # 남은 머리 충돌 무시 시간
         self.head_ignore = 0.0
+        # 드라이브슛으로 날아가는 중인지 (다른 데 맞거나 바닥에 닿으면 끝)
+        self.drive = False
         # 파워슛 잔상: 남은 잔상 시간, 지난 위치들 (최근 것이 앞), 다음 위치를 남길 때까지 남은 시간
         self.trail_time = 0.0
         self.trail = []
@@ -118,10 +131,13 @@ class Ball:
         self.head_ignore = max(self.head_ignore - game_framework.frame_time, 0)
         self.x += self.vx * game_framework.frame_time
         self.y += self.vy * game_framework.frame_time
-        self.vy -= GRAVITY_PPS2 * game_framework.frame_time
+        # 드라이브슛은 꼭대기를 지나 내려올 때 중력을 더 세게 받아 뚝 떨어짐
+        gravity_rate = DRIVE_DIP_RATE if self.drive and self.vy < 0 else 1.0
+        self.vy -= GRAVITY_PPS2 * gravity_rate * game_framework.frame_time
 
         if self.y - 32 < 80:
             self.y = 80 + 32
+            self.drive = False
             self.vy = -self.vy * GROUND_BOUNCE_RATE
             if self.vy < BOUNCE_STOP_SPEED_PPS:
                 self.vy = 0
@@ -173,6 +189,7 @@ class Ball:
     def bounce_from(self, cx, cy, r, head_vy, header):
         # head_vy: 머리가 위아래로 움직이는 속도 (점프 중이 아니면 0)
         # header: 헤딩한 선수 (머리 사이 왕복 판정용)
+        self.drive = False
 
         # 같은 선수 머리에 아주 짧은 시간 안에 또 맞았으면, 공이 머리에 붙어 같이 움직이는 것
         stuck_on_head = self.last_header is header and self.time_since_head < HEAD_STUCK_TIME
@@ -217,6 +234,7 @@ class Ball:
             self.pingpong = 0
 
     def bounce_from_box(self, left, bottom, right, top):
+        self.drive = False
         # 사각형 위에서 공 중심과 가장 가까운 점
         px = clamp(left, self.x, right)
         py = clamp(bottom, self.y, top)
@@ -243,12 +261,14 @@ class Ball:
 
     def swept(self, face_dir):
         # 하드태클에 쓸려 진행 방향으로 낮고 빠르게 굴러감
+        self.drive = False
         self.vx = face_dir * TACKLE_SWEEP_X_PPS
         self.vy = TACKLE_SWEEP_Y_PPS
 
     def dribbled(self, x, vx):
         # 트릭스터 발 앞에 붙어 바닥으로 같이 굴러감
         # x: 붙을 가로 위치, vx: 선수가 움직이는 속도 (공 회전 애니메이션용)
+        self.drive = False
         self.x = clamp(32, x, 1280 - 32)
         self.y = 80 + 32
         self.vx, self.vy = vx, 0
@@ -260,6 +280,7 @@ class Ball:
 
     def repelled(self, cx, cy, r):
         # 철벽 방어 보호막(원)에 맞으면 원 바깥쪽으로 세게 튕겨 나감
+        self.drive = False
         dx, dy = self.x - cx, self.y - cy
         d = math.sqrt(dx * dx + dy * dy)
         if d == 0:
@@ -274,8 +295,25 @@ class Ball:
 
     def overhead_kicked(self, face_dir, power_rate):
         # 오버헤드킥: 바라보는 쪽 아래 대각선으로 세게 내리꽂음 (power_rate: 찬 선수의 킥 세기 배율)
+        self.drive = False
         self.vx = face_dir * OVERHEAD_SPEED_X_PPS * power_rate
         self.vy = -OVERHEAD_SPEED_DOWN_PPS * power_rate
+        self.start_trail()
+
+    def drive_kicked(self, face_dir):
+        # 드라이브슛: 꼭대기(DRIVE_TOP_Y)까지 떠올랐다가 상대 골대 입구 높이에 떨어지도록 속도를 정함
+        target_x = 1280 - DRIVE_TARGET_GAP if face_dir == 1 else DRIVE_TARGET_GAP
+        top_y = max(DRIVE_TOP_Y, self.y + 60)
+        # 꼭대기까지 올라가는 위 속도와 시간 (보통 중력), 꼭대기에서 골대 입구 높이까지 떨어지는 시간 (센 중력)
+        up_speed = math.sqrt(2 * GRAVITY_PPS2 * (top_y - self.y))
+        up_time = up_speed / GRAVITY_PPS2
+        down_time = math.sqrt(2 * (top_y - DRIVE_TARGET_Y) / (GRAVITY_PPS2 * DRIVE_DIP_RATE))
+        # 그 시간 동안 골대까지 가도록 가로 속도를 정함
+        speed_x = abs(target_x - self.x) / (up_time + down_time)
+        speed_x = clamp(DRIVE_MIN_SPEED_X_PPS, speed_x, DRIVE_MAX_SPEED_X_PPS)
+        self.vx = face_dir * speed_x
+        self.vy = up_speed
+        self.drive = True
         self.start_trail()
 
     def power_header(self):
@@ -286,6 +324,7 @@ class Ball:
     def kicked(self, face_dir, power_rate, power_shot):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
         # power_shot: 파워슛이면 가로 속도를 크게 올림
+        self.drive = False
         self.vx = face_dir * KICK_SPEED_X_PPS * power_rate
         self.vy = KICK_SPEED_Y_PPS * power_rate
         if power_shot:

@@ -333,16 +333,23 @@ def update():
             # 공을 건드리면 스킬 게이지 증가
             character.touch_ball()
 
-        # 보통 킥과 파워슛 킥 모두 발을 뻗은 칸(2~4)에서 공을 참
-        if character.state in ('KICK', 'POWER') and 2 <= int(character.frame) <= 4 and not character.kick_hit:
+        # 보통 킥, 파워슛 킥, 필살 킥 모두 발을 뻗은 칸(2~4)에서 공을 참
+        if character.state in ('KICK', 'POWER', 'SKILL_KICK') and 2 <= int(character.frame) <= 4 and not character.kick_hit:
             if collide_circle(character.get_foot(), ball.get_circle()):
-                ball.kicked(character.face_dir, character.kick_power_rate, character.power_shot)
-                # 파워슛은 한 번 차면 해제
-                character.power_shot = False
+                effect_size = 128
+                if character.state == 'SKILL_KICK':
+                    # 필살 킥: 감아차기형은 드라이브슛 (한 번 차면 해제, 이펙트도 크게)
+                    ball.drive_kicked(character.face_dir)
+                    character.skill_kick = False
+                    effect_size = POWER_EFFECT_SIZE
+                else:
+                    ball.kicked(character.face_dir, character.kick_power_rate, character.power_shot)
+                    # 파워슛은 한 번 차면 해제
+                    character.power_shot = False
                 character.kick_hit = True
                 # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
                 foot_x, foot_y, foot_r = character.get_foot()
-                game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2), 1)
+                game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2, effect_size), 1)
                 # 공을 건드리면 스킬 게이지 증가
                 character.touch_ball()
 

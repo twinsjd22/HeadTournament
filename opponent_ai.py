@@ -131,9 +131,11 @@ class OpponentAI:
         # 규칙 3: 공이 발 앞에 있으면 킥 (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
         front = dx * self.character.face_dir
         if self.character.face_dir == -1 and KICK_MIN_DISTANCE < front < KICK_MAX_DISTANCE and ball.y < KICK_MAX_HEIGHT:
-            # 파워슛이 준비되어 있으면 파워슛 동작으로 참 (키보드의 Space와 같음)
+            # 파워슛이나 필살 킥이 준비되어 있으면 그 동작으로 참 (키보드의 Space와 같음)
             if self.character.power_shot:
                 self.character.power_kick()
+            elif self.character.skill_kick:
+                self.character.skill_kick_start()
             else:
                 self.character.kick()
 

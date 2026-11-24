@@ -98,7 +98,7 @@ SHRINK_TIME = 0.2
 
 # 상태마다 쓰는 시트 줄 (위에서부터: 대기, 달리기, 점프, 킥, 태클, 넘어짐, 개인기, 파워, 신규 유형의 필살기)
 STATE_ROWS = {'IDLE': 0, 'RUN': 1, 'JUMP': 2, 'KICK': 3, 'TACKLE': 4, 'FALL': 5, 'TRICK': 6, 'POWER': 7,
-              'GUARD': 8, 'OVERHEAD': 8, 'GROW': 8}
+              'GUARD': 8, 'OVERHEAD': 8, 'GROW': 8, 'SKILL_KICK': 8}
 
 
 def draw_debug_circle(circle):
@@ -135,6 +135,8 @@ class Character:
         self.touch_cooldown = 0.0
         # 파워슛 준비 상태 (필살 스킬을 쓰면 다음 킥이 파워슛)
         self.power_shot = False
+        # 필살 킥 준비 상태 (감아차기형 등, 필살 스킬을 쓰면 다음 킥이 자기 필살 킥)
+        self.skill_kick = False
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
         # 트릭스터로 공을 몰고 가는 중인지
@@ -152,12 +154,14 @@ class Character:
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         # TACKLE: 하드태클 (수비형 필살 스킬, 앞으로 미끄러지며 대시)
         # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
+        # SKILL_KICK: 필살 킥 (감아차기형 드라이브슛 등, 필살 스킬로 준비한 뒤 Space로 차는 자기 필살기 줄의 킥)
         # GROW: 거대화 기합 (거인형 필살 스킬, 잠깐 제자리에서 커진 뒤 평소처럼 움직이며 커진 채 지냄)
         # OVERHEAD: 오버헤드킥 (공중형 필살 스킬, 점프 중에 몸을 뒤집어 차고 등으로 착지)
         # GUARD: 철벽 방어 (골키퍼형 필살 스킬, 1초 동안 보호막으로 주변 공을 튕겨 냄, 이때는 태클에 넘어지지 않음)
         self.machine = Machine(
             model=self,
-            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD', 'OVERHEAD', 'GROW'],
+            states=['IDLE', 'RUN', 'JUMP', 'KICK', 'POWER', 'TRICK', 'FALL', 'TACKLE', 'GUARD', 'OVERHEAD', 'GROW',
+                    'SKILL_KICK'],
             transitions=[
                 {'trigger': 'move_start', 'source': 'IDLE', 'dest': 'RUN'},
                 {'trigger': 'move_stop', 'source': 'RUN', 'dest': 'IDLE'},
@@ -165,6 +169,7 @@ class Character:
                 {'trigger': 'land', 'source': 'JUMP', 'dest': 'IDLE'},
                 {'trigger': 'kick', 'source': ['IDLE', 'RUN'], 'dest': 'KICK'},
                 {'trigger': 'power_kick', 'source': ['IDLE', 'RUN'], 'dest': 'POWER'},
+                {'trigger': 'skill_kick_start', 'source': ['IDLE', 'RUN'], 'dest': 'SKILL_KICK'},
                 {'trigger': 'trick', 'source': ['IDLE', 'RUN'], 'dest': 'TRICK'},
                 {'trigger': 'trick_end', 'source': 'TRICK', 'dest': 'IDLE'},
                 {'trigger': 'tackle', 'source': ['IDLE', 'RUN'], 'dest': 'TACKLE'},
@@ -175,9 +180,9 @@ class Character:
                 {'trigger': 'overhead_end', 'source': 'OVERHEAD', 'dest': 'IDLE'},
                 {'trigger': 'grow', 'source': ['IDLE', 'RUN'], 'dest': 'GROW'},
                 {'trigger': 'grow_end', 'source': 'GROW', 'dest': 'IDLE'},
-                {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER'], 'dest': 'FALL'},
+                {'trigger': 'fall', 'source': ['IDLE', 'RUN', 'KICK', 'POWER', 'SKILL_KICK'], 'dest': 'FALL'},
                 {'trigger': 'get_up', 'source': 'FALL', 'dest': 'IDLE'},
-                {'trigger': 'kick_end', 'source': ['KICK', 'POWER'], 'dest': 'IDLE'},
+                {'trigger': 'kick_end', 'source': ['KICK', 'POWER', 'SKILL_KICK'], 'dest': 'IDLE'},
             ],
             initial='IDLE',
             auto_transitions=False,
@@ -243,6 +248,10 @@ class Character:
         self.frame = 0
         self.kick_hit = False
 
+    def on_enter_SKILL_KICK(self):
+        self.frame = 0
+        self.kick_hit = False
+
     def handle_event(self, event):
         if event.type == SDL_KEYDOWN and event.key == SDLK_UP:
             self.jump()
@@ -253,9 +262,11 @@ class Character:
             return
 
         if event.type == SDL_KEYDOWN and event.key == SDLK_SPACE:
-            # 파워슛이 준비되어 있으면 파워슛 킥, 아니면 보통 킥
+            # 파워슛이나 필살 킥이 준비되어 있으면 그 킥, 아니면 보통 킥
             if self.power_shot:
                 self.power_kick()
+            elif self.skill_kick:
+                self.skill_kick_start()
             else:
                 self.kick()
             return
@@ -306,9 +317,11 @@ class Character:
                 self.land()
                 if self.dir != 0:
                     self.move_start()
-        elif self.state in ('KICK', 'POWER'):
+        elif self.state in ('KICK', 'POWER', 'SKILL_KICK'):
             self.frame += KICK_FRAMES_PER_SECOND * game_framework.frame_time
-            if self.frame >= 5:
+            # 필살 킥 줄은 6칸, 보통 킥과 파워슛 줄은 5칸
+            last_frame = 6 if self.state == 'SKILL_KICK' else 5
+            if self.frame >= last_frame:
                 self.kick_end()
                 if self.dir != 0:
                     self.move_start()
@@ -424,12 +437,12 @@ class Character:
         # 게이지가 가득 찼을 때만 필살 스킬 사용, 사용하면 게이지는 0
         if self.gauge < GAUGE_MAX:
             return
-        # 오버헤드킥은 점프 중에만, 파워슛은 준비만 하는 것이라 언제든,
+        # 오버헤드킥은 점프 중에만, 파워슛과 필살 킥은 준비만 하는 것이라 언제든,
         # 나머지는 서 있거나 달릴 때만 나가므로 그 밖의 상태에서는 게이지를 쓰지 않음
         if self.char_type == 'aerial':
             if self.state != 'JUMP':
                 return
-        elif self.char_type != 'power' and self.state not in ('IDLE', 'RUN'):
+        elif self.char_type not in ('power', 'curve') and self.state not in ('IDLE', 'RUN'):
             return
         self.gauge = 0
         # 경기 화면이 컷인을 띄울 수 있게 알림 (경기 화면이 보고 나서 다시 False로)
@@ -437,6 +450,8 @@ class Character:
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
         if self.char_type == 'power':
             self.power_shot = True
+        elif self.char_type == 'curve':
+            self.skill_kick = True
         elif self.char_type == 'trickster':
             self.trick()
         elif self.char_type == 'defender':
@@ -521,7 +536,7 @@ class Character:
             return
         draw_debug_circle(self.get_head())
         draw_rectangle(*self.get_bb())
-        if self.state in ('KICK', 'POWER'):
+        if self.state in ('KICK', 'POWER', 'SKILL_KICK'):
             draw_debug_circle(self.get_foot())
         if self.state == 'OVERHEAD' and int(self.frame) == 3:
             draw_debug_circle(self.get_overhead_foot())
