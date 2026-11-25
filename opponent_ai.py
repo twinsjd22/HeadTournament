@@ -2,9 +2,9 @@ import math
 from collections import deque
 from types import SimpleNamespace
 
+import common
 import game_framework
 
-import play_mode
 from ball import GRAVITY_PPS2
 from character import GAUGE_MAX
 
@@ -78,7 +78,7 @@ class OpponentAI:
 
     def seen_ball(self):
         # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
-        ball = play_mode.ball
+        ball = common.ball
         self.elapsed += game_framework.frame_time
         self.ball_history.append((self.elapsed, SimpleNamespace(x=ball.x, y=ball.y, vx=ball.vx, vy=ball.vy)))
         while len(self.ball_history) > 1 and self.ball_history[1][0] <= self.elapsed - self.reaction_delay:

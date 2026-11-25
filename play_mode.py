@@ -3,6 +3,7 @@ import sys
 
 from pico2d import *
 
+import common
 import debug_view
 import game_framework
 import select_mode
@@ -166,6 +167,11 @@ def init():
 
     ball = Ball()
     game_world.add_object(ball, 1)
+
+    # 상대 AI 등 다른 모듈도 선수와 공을 쓸 수 있게 공유
+    common.player = player
+    common.opponent = opponent
+    common.ball = ball
 
     # 골대는 공보다 나중에 그려서, 공이 골대 안으로 들어가는 것처럼 보이게 함
     goal_left = Goal('left')
