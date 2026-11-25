@@ -108,6 +108,36 @@ class SetTargetLocation(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
+class MoveTo(py_trees.behaviour.Behaviour):
+    # Action "Move To": 블랙보드 target (서야 할 가로 위치) 쪽으로 이동
+    # 가는 중이면 RUNNING, 도착해서 멈추면 SUCCESS (출발 거리와 멈춤 거리를 다르게 두어 멈췄다 움직였다 떨리지 않게 함)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='target', access=py_trees.common.Access.READ)
+
+    def update(self):
+        character = self.ai.character
+        target_dx = self.blackboard.target - character.x
+        if character.dir == 0:
+            if abs(target_dx) <= FOLLOW_START_DISTANCE:
+                # 충분히 가까우면 서 있음
+                return py_trees.common.Status.SUCCESS
+            self.ai.move(1 if target_dx > 0 else -1)
+            return py_trees.common.Status.RUNNING
+        if abs(target_dx) < FOLLOW_STOP_DISTANCE:
+            # 도착: 멈추고 플레이어 골대 쪽을 바라봄
+            self.ai.move(0)
+            character.face_dir = -1
+            return py_trees.common.Status.SUCCESS
+        if target_dx * character.dir < 0:
+            # 목표가 반대쪽으로 넘어가면 방향을 바꿈
+            self.ai.move(-character.dir)
+        return py_trees.common.Status.RUNNING
+
+
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
     # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
@@ -128,6 +158,7 @@ class OpponentAI:
         # 행동 트리 노드 (아직 트리로 묶지 않고 매 프레임 직접 한 번씩 실행)
         self.sense_ball_node = SenseBall('Sense Ball', self)
         self.set_target_node = SetTargetLocation('Set Target Location', self)
+        self.move_to_node = MoveTo('Move To', self)
 
     def seen_ball(self):
         # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
@@ -155,19 +186,8 @@ class OpponentAI:
         ball = self.blackboard.ball
         dx = ball.x - self.character.x
 
-        # 규칙 1: 서야 할 자리 쪽으로 이동
-        target_dx = self.blackboard.target - self.character.x
-        if self.character.dir == 0:
-            if abs(target_dx) > FOLLOW_START_DISTANCE:
-                self.move(1 if target_dx > 0 else -1)
-        else:
-            if abs(target_dx) < FOLLOW_STOP_DISTANCE:
-                self.move(0)
-                # 멈추면 플레이어 골대 쪽을 바라봄
-                self.character.face_dir = -1
-            elif target_dx * self.character.dir < 0:
-                # 목표가 반대쪽으로 넘어가면 방향을 바꿈
-                self.move(-self.character.dir)
+        # 규칙 1: 서야 할 자리 쪽으로 이동 (Move To 노드)
+        self.move_to_node.tick_once()
 
         # 규칙 4: 공이 오른쪽 앞(자기 골대 쪽)에 낮게 있으면 밀지 않도록 점프해서 넘어감
         if self.character.dir == 1 and 0 < dx < JUMP_OVER_DISTANCE and ball.y < BALL_LOW_HEIGHT:
