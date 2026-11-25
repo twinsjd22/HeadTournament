@@ -5,8 +5,15 @@
 
 - 과목: 2D 게임 프로그래밍
 - 제작자: 김도영 (2023180006)
-- 개발 환경: Python, pico2d, transitions
+- 개발 환경: Python, pico2d, transitions, py_trees (상대 AI 행동 트리)
 - 화면: 1280 x 720 (16:9), 풀스크린 실행
+
+## 실행 방법
+
+```
+pip install pico2d transitions py_trees
+python main.py
+```
 
 ## 게임 규칙
 
