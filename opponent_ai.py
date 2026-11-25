@@ -35,8 +35,6 @@ BEHIND_DISTANCE = 50
 JUMP_OVER_DISTANCE = 90
 # 높은 공은 공보다 이만큼 오른쪽에 서서, 공이 머리 왼쪽에 맞아 플레이어 쪽으로 튕기게 함
 HEADING_OFFSET = 20
-# 필살 스킬: 게이지가 가득 차고 공이 바라보는 쪽 앞 이 거리 안에 낮게 있으면 사용
-SKILL_DISTANCE = 150
 # 수비 (골대 지키기): 공이 이 속도보다 빠르게 자기 골대 쪽(오른쪽)으로 오거나,
 # 공이 자기 골대에서 이 거리 안인데 AI보다 골대 쪽에 있으면 위험으로 봄
 DANGER_BALL_SPEED_PPS = 2.5 * (150.0 / 1.75)
@@ -47,6 +45,14 @@ DEFEND_MAX_X = 1170
 # 필살 슛 (파워형, 감아차기형, 무회전형): AI가 이 가로 위치 사이에서 공이 발 앞에 있을 때만 준비함
 # (플레이어 골대가 왼쪽 끝이라 x가 곧 골대까지의 거리, 테스트에서 각 슛이 잘 들어간 범위)
 SHOT_SKILL_RANGES = {'power': (0, 900), 'curve': (580, 1030), 'knuckle': (300, 1050)}
+# 하드태클 (수비형): 플레이어가 공을 갖고 (공에서 이 거리 안, 공이 낮음) 태클이 닿는 거리 앞에 있을 때
+# (태클은 0.6초 동안 약 180px 미끄러지고 다리가 앞으로 75px 뻗음)
+PLAYER_ON_BALL_DISTANCE = 100
+TACKLE_MIN_REACH = 60
+TACKLE_MAX_REACH = 240
+# 트릭스터 (개인기형): 공이 발 앞에 있고 플레이어가 이 거리 안에서 앞을 막고 있을 때 (트릭은 1초 동안 약 300px 돌진)
+TRICK_BALL_MIN, TRICK_BALL_MAX = 20, 120
+TRICK_BLOCK_MIN, TRICK_BLOCK_MAX = 60, 300
 # 점프로 슛 막기: 서 있을 때 머리 중심 높이, 머리와 공이 닿는 거리 (머리 반지름 30 + 공 반지름 32)
 HEAD_CENTER_Y = 199
 HEAD_HIT_DISTANCE = 62
@@ -282,6 +288,45 @@ class IsInShotRange(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.FAILURE
 
 
+class IsPlayerOnBall(py_trees.behaviour.Behaviour):
+    # Condition "Is Player On Ball": 플레이어가 공을 갖고 태클이 닿는 거리 앞에 있는가? (하드태클할 때)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character, player = self.ai.character, common.player
+        player_front = (player.x - character.x) * character.face_dir
+        has_ball = abs(player.x - ball.x) < PLAYER_ON_BALL_DISTANCE and ball.y < BALL_LOW_HEIGHT
+        if character.face_dir == -1 and has_ball and TACKLE_MIN_REACH < player_front < TACKLE_MAX_REACH:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class IsPlayerBlocking(py_trees.behaviour.Behaviour):
+    # Condition "Is Player Blocking": 공이 발 앞에 있고 플레이어가 그 앞을 막고 있는가? (트릭스터로 뚫을 때)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character, player = self.ai.character, common.player
+        ball_front = (ball.x - character.x) * character.face_dir
+        player_front = (player.x - character.x) * character.face_dir
+        if (character.face_dir == -1 and TRICK_BALL_MIN < ball_front < TRICK_BALL_MAX and ball.y < BALL_LOW_HEIGHT
+                and TRICK_BLOCK_MIN < player_front < TRICK_BLOCK_MAX):
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
 class UseSkill(py_trees.behaviour.Behaviour):
     # Action "Use Skill": 필살 스킬 사용 (슛 계열은 다음 킥을 필살 슛으로 준비, Kick 가지가 이어서 참)
 
@@ -379,6 +424,20 @@ class OpponentAI:
                 IsInShotRange('Is In Shot Range', self),
                 UseSkill('Use Shot Skill', self),
             ]))
+        elif self.character.char_type == 'defender':
+            # 하드태클: 플레이어가 공을 몰고 가까이 오면 공을 빼앗고 넘어뜨림
+            branches.append(py_trees.composites.Sequence('Tackle Skill', memory=False, children=[
+                IsGaugeFull('Is Gauge Full', self),
+                IsPlayerOnBall('Is Player On Ball', self),
+                UseSkill('Use Tackle', self),
+            ]))
+        elif self.character.char_type == 'trickster':
+            # 트릭스터: 공을 가졌는데 플레이어가 앞을 막으면 드리블로 뚫고 지나감
+            branches.append(py_trees.composites.Sequence('Trick Skill', memory=False, children=[
+                IsGaugeFull('Is Gauge Full', self),
+                IsPlayerBlocking('Is Player Blocking', self),
+                UseSkill('Use Trick', self),
+            ]))
         # 수비: 머리 위로 넘어가는 슛을 점프해서 머리로 막음
         block = py_trees.composites.Sequence('Block Shot', memory=False, children=[
             IsShotOverHead('Is Shot Over Head', self),
@@ -468,10 +527,6 @@ class OpponentAI:
                     self.character.use_skill()
             elif 0 < dx < OVERHEAD_JUMP_DISTANCE and OVERHEAD_MIN_HEIGHT < ball.y < OVERHEAD_MAX_HEIGHT and ball.vy < 0:
                 self.character.jump()
-        elif char_type not in SHOT_SKILL_RANGES and 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
-            # 나머지 유형 (수비형, 개인기형): 공이 앞에 낮게 있으면 사용
-            # (슛 계열은 행동 트리의 Shot Skill 가지가 맡음)
-            self.character.use_skill()
 
     def draw(self):
         pass
