@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import py_trees
 
 import common
+import debug_view
 import game_framework
 
 from ball import GRAVITY_PPS2
@@ -155,10 +156,19 @@ class OpponentAI:
         self.blackboard = py_trees.blackboard.Client(name='Opponent AI')
         self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
         self.blackboard.register_key(key='target', access=py_trees.common.Access.READ)
-        # 행동 트리 노드 (아직 트리로 묶지 않고 매 프레임 직접 한 번씩 실행)
-        self.sense_ball_node = SenseBall('Sense Ball', self)
-        self.set_target_node = SetTargetLocation('Set Target Location', self)
-        self.move_to_node = MoveTo('Move To', self)
+        self.build_behavior_tree()
+
+    def build_behavior_tree(self):
+        # 위치 잡기 트리: 공을 감지하고, 서야 할 자리를 정해, 그쪽으로 이동
+        # memory=False : 매 tick 감지부터 다시 해서 공이 움직이면 서야 할 자리도 바로 바뀜
+        root = py_trees.composites.Sequence('Position', memory=False, children=[
+            SenseBall('Sense Ball', self),
+            SetTargetLocation('Set Target Location', self),
+            MoveTo('Move To', self),
+        ])
+        self.bt = py_trees.trees.BehaviourTree(root)
+        # 콘솔에 마지막으로 출력한 트리 상태
+        self.bt_snapshot = ''
 
     def seen_ball(self):
         # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
@@ -179,15 +189,18 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 감지 노드가 공을, 위치 노드가 서야 할 자리를 블랙보드에 기록
-        self.sense_ball_node.tick_once()
-        self.set_target_node.tick_once()
-        # 판단: 진짜 공 대신 블랙보드에 적힌 감지한 공과 서야 할 자리를 보고 판단함
+        # 행동 트리를 한 번 실행 (감지 → 서야 할 자리 → 이동)
+        self.bt.tick()
+        # 확인용: F1 표시를 켰을 때만 트리 상태가 바뀌면 콘솔에 출력 (✓ SUCCESS, ✕ FAILURE, * RUNNING)
+        if debug_view.show_bounding:
+            snapshot = py_trees.display.unicode_tree(self.bt.root, show_status=True)
+            if snapshot != self.bt_snapshot:
+                print(snapshot)
+                self.bt_snapshot = snapshot
+
+        # 아직 트리로 옮기지 않은 규칙: 블랙보드에 적힌 감지한 공을 보고 판단함
         ball = self.blackboard.ball
         dx = ball.x - self.character.x
-
-        # 규칙 1: 서야 할 자리 쪽으로 이동 (Move To 노드)
-        self.move_to_node.tick_once()
 
         # 규칙 4: 공이 오른쪽 앞(자기 골대 쪽)에 낮게 있으면 밀지 않도록 점프해서 넘어감
         if self.character.dir == 1 and 0 < dx < JUMP_OVER_DISTANCE and ball.y < BALL_LOW_HEIGHT:
