@@ -45,6 +45,10 @@ OVERHEAD_MAX_HEIGHT = 480
 OVERHEAD_USE_DISTANCE = 70
 # 오버헤드킥을 노릴 때는 공이 떨어질 자리보다 이만큼 왼쪽에 서서, 공이 머리 위 뒤쪽(차는 발 쪽)으로 오게 함
 OVERHEAD_STAND_OFFSET = 40
+# 거대화 (거인형): 높은 공이 이 거리 안에서 이 높이 사이로 떨어지고 있으면 커져서 공중볼을 따냄
+GIANT_DISTANCE = 220
+GIANT_MIN_HEIGHT = 230
+GIANT_MAX_HEIGHT = 520
 
 # 서 있는 선수의 머리 높이 (높은 공이 이 높이까지 떨어질 자리를 예측함)
 HEAD_HEIGHT = 230
@@ -145,7 +149,11 @@ class OpponentAI:
 
     def use_skill(self, ball, dx, front):
         char_type = self.character.char_type
-        if char_type == 'keeper':
+        if char_type == 'giant':
+            # 거대화: 높은 공이 가까이 떨어지고 있을 때 커져서 공중볼을 따냄 (서 있거나 달릴 때만 커짐)
+            if abs(dx) < GIANT_DISTANCE and GIANT_MIN_HEIGHT < ball.y < GIANT_MAX_HEIGHT and ball.vy < 0:
+                self.character.use_skill()
+        elif char_type == 'keeper':
             # 철벽 방어: 슛이 자기 골대 쪽으로 빠르게 날아와 가까이 왔을 때 받아침
             if ball.vx > GUARD_BALL_SPEED_PPS and -GUARD_DISTANCE < dx < 0 and ball.y < GUARD_MAX_HEIGHT:
                 self.character.use_skill()
