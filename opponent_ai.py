@@ -9,6 +9,7 @@ import debug_view
 import game_framework
 
 from ball import GRAVITY_PPS2
+from character import JUMP_SPEED_PPS, GRAVITY_PPS2 as CHARACTER_GRAVITY_PPS2
 from character import GAUGE_MAX
 
 # 공과 가로 거리가 이보다 멀면 공 쪽으로 움직이기 시작
@@ -43,6 +44,9 @@ DANGER_DISTANCE = 480
 # 지킬 때는 공보다 이만큼 골대 쪽에 서되, 이 x보다 골대 안쪽으로는 들어가지 않음
 DEFEND_GAP = 70
 DEFEND_MAX_X = 1170
+# 점프로 슛 막기: 서 있을 때 머리 중심 높이, 머리와 공이 닿는 거리 (머리 반지름 30 + 공 반지름 32)
+HEAD_CENTER_Y = 199
+HEAD_HIT_DISTANCE = 62
 # 철벽 방어 (골키퍼형): 공이 이 속도보다 빠르게 자기 골대 쪽으로 날아오며, 이 거리 안에 이 높이보다 낮게 오면 사용
 GUARD_BALL_SPEED_PPS = 3.0 * (150.0 / 1.75)
 GUARD_DISTANCE = 140
@@ -219,6 +223,35 @@ class SetDefendLocation(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
+class IsShotOverHead(py_trees.behaviour.Behaviour):
+    # Condition "Is Shot Over Head": 자기 골대 쪽으로 날아오는 슛이, 서 있으면 머리 위로 넘어가지만
+    # 지금 점프하면 머리에 맞는가? (공이 AI 자리에 올 때의 높이와 그때 점프한 머리 높이를 미리 계산)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        dx = character.x - ball.x
+        if ball.vx <= DANGER_BALL_SPEED_PPS or dx <= 0:
+            return py_trees.common.Status.FAILURE
+        # 공이 AI 자리에 오는 시간과 그때의 공 높이
+        time = dx / ball.vx
+        ball_y = ball.y + ball.vy * time - 0.5 * GRAVITY_PPS2 * time * time
+        # 서 있어도 머리에 맞으면 점프할 필요 없음
+        if abs(ball_y - HEAD_CENTER_Y) < HEAD_HIT_DISTANCE:
+            return py_trees.common.Status.FAILURE
+        # 지금 점프하면 그때 머리가 있을 높이 (아직 땅에 있을 때만 계산)
+        head_y = HEAD_CENTER_Y + JUMP_SPEED_PPS * time - 0.5 * CHARACTER_GRAVITY_PPS2 * time * time
+        if head_y > HEAD_CENTER_Y and abs(ball_y - head_y) < HEAD_HIT_DISTANCE:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
 class IsBallFallingToHead(py_trees.behaviour.Behaviour):
     # Condition "Is Ball Falling To Head": 공이 머리 높이로 가까이 내려오는가? (점프 헤딩할 때)
     # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 왼쪽 앞에 있을 때만)
@@ -294,6 +327,11 @@ class OpponentAI:
             IsBallAtFoot('Is Ball At Foot', self),
             Kick('Kick', self),
         ])
+        # 수비: 머리 위로 넘어가는 슛을 점프해서 머리로 막음
+        block = py_trees.composites.Sequence('Block Shot', memory=False, children=[
+            IsShotOverHead('Is Shot Over Head', self),
+            Jump('Jump To Block', self),
+        ])
         header = py_trees.composites.Sequence('Header', memory=False, children=[
             IsBallFallingToHead('Is Ball Falling To Head', self),
             Jump('Jump To Head', self),
@@ -314,7 +352,7 @@ class OpponentAI:
         ])
         # 킥과 헤딩은 공을 걷어 내는 수비도 되므로 가장 먼저, 넘어가기는 골대 쪽으로 달려갈 때 필요해서 수비보다 먼저
         think_and_act = py_trees.composites.Selector('Think and Act', memory=False,
-                                                     children=[kick, header, jump_over, defend, position])
+                                                     children=[kick, block, header, jump_over, defend, position])
         root = py_trees.composites.Sequence('Opponent AI', memory=False, children=[
             SenseBall('Sense Ball', self),
             think_and_act,
