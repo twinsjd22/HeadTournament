@@ -44,6 +44,9 @@ DANGER_DISTANCE = 480
 # 지킬 때는 공보다 이만큼 골대 쪽에 서되, 이 x보다 골대 안쪽으로는 들어가지 않음
 DEFEND_GAP = 70
 DEFEND_MAX_X = 1170
+# 필살 슛 (파워형, 감아차기형, 무회전형): AI가 이 가로 위치 사이에서 공이 발 앞에 있을 때만 준비함
+# (플레이어 골대가 왼쪽 끝이라 x가 곧 골대까지의 거리, 테스트에서 각 슛이 잘 들어간 범위)
+SHOT_SKILL_RANGES = {'power': (0, 900), 'curve': (580, 1030), 'knuckle': (300, 1050)}
 # 점프로 슛 막기: 서 있을 때 머리 중심 높이, 머리와 공이 닿는 거리 (머리 반지름 30 + 공 반지름 32)
 HEAD_CENTER_Y = 199
 HEAD_HIT_DISTANCE = 62
@@ -252,6 +255,45 @@ class IsShotOverHead(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.FAILURE
 
 
+class IsGaugeFull(py_trees.behaviour.Behaviour):
+    # Condition "Is Gauge Full": 스킬 게이지가 가득 찼는가?
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+
+    def update(self):
+        if self.ai.character.gauge >= GAUGE_MAX:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class IsInShotRange(py_trees.behaviour.Behaviour):
+    # Condition "Is In Shot Range": 이 유형의 필살 슛이 잘 들어가는 거리에 있는가?
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.min_x, self.max_x = SHOT_SKILL_RANGES[ai.character.char_type]
+
+    def update(self):
+        if self.min_x <= self.ai.character.x <= self.max_x:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class UseSkill(py_trees.behaviour.Behaviour):
+    # Action "Use Skill": 필살 스킬 사용 (슛 계열은 다음 킥을 필살 슛으로 준비, Kick 가지가 이어서 참)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+
+    def update(self):
+        self.ai.character.use_skill()
+        return py_trees.common.Status.SUCCESS
+
+
 class IsBallFallingToHead(py_trees.behaviour.Behaviour):
     # Condition "Is Ball Falling To Head": 공이 머리 높이로 가까이 내려오는가? (점프 헤딩할 때)
     # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 왼쪽 앞에 있을 때만)
@@ -327,6 +369,16 @@ class OpponentAI:
             IsBallAtFoot('Is Ball At Foot', self),
             Kick('Kick', self),
         ])
+        # 필살 슛 (슛 계열 유형만): 게이지가 차고, 공이 발 앞에 있고, 슛이 잘 들어가는 거리면 준비
+        # (트리는 AI가 조종하는 유형에 맞게 만듦)
+        branches = []
+        if self.character.char_type in SHOT_SKILL_RANGES:
+            branches.append(py_trees.composites.Sequence('Shot Skill', memory=False, children=[
+                IsGaugeFull('Is Gauge Full', self),
+                IsBallAtFoot('Is Ball At Foot For Skill', self),
+                IsInShotRange('Is In Shot Range', self),
+                UseSkill('Use Shot Skill', self),
+            ]))
         # 수비: 머리 위로 넘어가는 슛을 점프해서 머리로 막음
         block = py_trees.composites.Sequence('Block Shot', memory=False, children=[
             IsShotOverHead('Is Shot Over Head', self),
@@ -352,7 +404,7 @@ class OpponentAI:
         ])
         # 킥과 헤딩은 공을 걷어 내는 수비도 되므로 가장 먼저, 넘어가기는 골대 쪽으로 달려갈 때 필요해서 수비보다 먼저
         think_and_act = py_trees.composites.Selector('Think and Act', memory=False,
-                                                     children=[kick, block, header, jump_over, defend, position])
+                                                     children=branches + [kick, block, header, jump_over, defend, position])
         root = py_trees.composites.Sequence('Opponent AI', memory=False, children=[
             SenseBall('Sense Ball', self),
             think_and_act,
@@ -416,8 +468,9 @@ class OpponentAI:
                     self.character.use_skill()
             elif 0 < dx < OVERHEAD_JUMP_DISTANCE and OVERHEAD_MIN_HEIGHT < ball.y < OVERHEAD_MAX_HEIGHT and ball.vy < 0:
                 self.character.jump()
-        elif 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
-            # 나머지 유형: 공이 앞에 낮게 있으면 사용
+        elif char_type not in SHOT_SKILL_RANGES and 0 < front < SKILL_DISTANCE and ball.y < BALL_LOW_HEIGHT:
+            # 나머지 유형 (수비형, 개인기형): 공이 앞에 낮게 있으면 사용
+            # (슛 계열은 행동 트리의 Shot Skill 가지가 맡음)
             self.character.use_skill()
 
     def draw(self):
