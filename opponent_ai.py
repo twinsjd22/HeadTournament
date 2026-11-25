@@ -139,6 +139,43 @@ class MoveTo(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.RUNNING
 
 
+class IsBallAtFoot(py_trees.behaviour.Behaviour):
+    # Condition "Is Ball At Foot": 공이 발 앞(발이 닿는 거리)에 낮게 있고, 플레이어 골대 쪽(왼쪽)을 보고 있는가?
+    # (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        front = (ball.x - character.x) * character.face_dir
+        if character.face_dir == -1 and KICK_MIN_DISTANCE < front < KICK_MAX_DISTANCE and ball.y < KICK_MAX_HEIGHT:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class Kick(py_trees.behaviour.Behaviour):
+    # Action "Kick": 킥 (파워슛이나 필살 킥이 준비되어 있으면 그 동작으로 참, 키보드의 Space와 같음)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+
+    def update(self):
+        character = self.ai.character
+        if character.power_shot:
+            character.power_kick()
+        elif character.skill_kick:
+            character.skill_kick_start()
+        else:
+            character.kick()
+        return py_trees.common.Status.SUCCESS
+
+
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
     # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
@@ -159,12 +196,20 @@ class OpponentAI:
         self.build_behavior_tree()
 
     def build_behavior_tree(self):
-        # 위치 잡기 트리: 공을 감지하고, 서야 할 자리를 정해, 그쪽으로 이동
-        # memory=False : 매 tick 감지부터 다시 해서 공이 움직이면 서야 할 자리도 바로 바뀜
-        root = py_trees.composites.Sequence('Position', memory=False, children=[
-            SenseBall('Sense Ball', self),
+        # 공을 감지한 뒤, 할 일을 하나 고름 (Selector: 왼쪽일수록 우선, 처음 SUCCESS나 RUNNING에서 멈춤)
+        # memory=False : 매 tick 감지부터, 그리고 우선순위가 높은 킥부터 다시 검사함
+        kick = py_trees.composites.Sequence('Kick', memory=False, children=[
+            IsBallAtFoot('Is Ball At Foot', self),
+            Kick('Kick', self),
+        ])
+        position = py_trees.composites.Sequence('Position', memory=False, children=[
             SetTargetLocation('Set Target Location', self),
             MoveTo('Move To', self),
+        ])
+        think_and_act = py_trees.composites.Selector('Think and Act', memory=False, children=[kick, position])
+        root = py_trees.composites.Sequence('Opponent AI', memory=False, children=[
+            SenseBall('Sense Ball', self),
+            think_and_act,
         ])
         self.bt = py_trees.trees.BehaviourTree(root)
         # 콘솔에 마지막으로 출력한 트리 상태
@@ -189,7 +234,7 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 행동 트리를 한 번 실행 (감지 → 서야 할 자리 → 이동)
+        # 행동 트리를 한 번 실행 (감지 → 킥 또는 위치 잡기)
         self.bt.tick()
         # 확인용: F1 표시를 켰을 때만 트리 상태가 바뀌면 콘솔에 출력 (✓ SUCCESS, ✕ FAILURE, * RUNNING)
         if debug_view.show_bounding:
@@ -211,16 +256,8 @@ class OpponentAI:
         if -JUMP_DISTANCE < dx <= 0 and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
             self.character.jump()
 
-        # 규칙 3: 공이 발 앞에 있으면 킥 (자기 골대 쪽으로 차지 않도록 왼쪽을 볼 때만)
+        # 규칙 3 (킥)은 행동 트리의 Kick 가지로 옮김
         front = dx * self.character.face_dir
-        if self.character.face_dir == -1 and KICK_MIN_DISTANCE < front < KICK_MAX_DISTANCE and ball.y < KICK_MAX_HEIGHT:
-            # 파워슛이나 필살 킥이 준비되어 있으면 그 동작으로 참 (키보드의 Space와 같음)
-            if self.character.power_shot:
-                self.character.power_kick()
-            elif self.character.skill_kick:
-                self.character.skill_kick_start()
-            else:
-                self.character.kick()
 
         # 규칙 5: 게이지가 가득 차면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만, 유형마다 쓰는 상황이 다름)
         if self.character.gauge >= GAUGE_MAX and self.character.face_dir == -1:
