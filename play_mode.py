@@ -338,8 +338,11 @@ def update():
             if collide_circle(character.get_foot(), ball.get_circle()):
                 effect_size = 128
                 if character.state == 'SKILL_KICK':
-                    # 필살 킥: 감아차기형은 드라이브슛 (한 번 차면 해제, 이펙트도 크게)
-                    ball.drive_kicked(character.face_dir)
+                    # 필살 킥: 감아차기형은 드라이브슛, 무회전형은 무회전슛 (한 번 차면 해제, 이펙트도 크게)
+                    if character.char_type == 'knuckle':
+                        ball.knuckle_kicked(character.face_dir, character.kick_power_rate)
+                    else:
+                        ball.drive_kicked(character.face_dir)
                     character.skill_kick = False
                     effect_size = POWER_EFFECT_SIZE
                 else:

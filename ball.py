@@ -1,4 +1,5 @@
 import math
+import random
 
 from pico2d import load_image, clamp
 
@@ -92,6 +93,23 @@ DRIVE_TARGET_Y = 200
 DRIVE_MIN_SPEED_X_PPS = (3.0 * PIXEL_PER_METER)
 DRIVE_MAX_SPEED_X_PPS = (11.0 * PIXEL_PER_METER)
 
+# 무회전슛: 중력 없이 정해진 길로 빠르게 날아감 (회전 없이 흔들리는 공처럼 예측하기 어려운 궤적)
+# (1) 낮게 거의 일직선 → (2) 도중에 갑자기 위로 솟음 → (3) 다시 내려와 골대 입구 앞으로
+KNUCKLE_SPEED_X_MPS = 11.0
+KNUCKLE_SPEED_X_PPS = (KNUCKLE_SPEED_X_MPS * PIXEL_PER_METER)
+# 낮게 날아가는 높이와 솟아오르는 높이
+KNUCKLE_LOW_Y = 170
+KNUCKLE_HIGH_Y = 330
+# 솟아오르기 시작하는 곳 (골대까지 거리 중 이 비율 사이에서 매번 다르게), 솟아오르는 데 쓰는 거리의 비율
+KNUCKLE_RISE_AT_RANGE = (0.30, 0.45)
+KNUCKLE_RISE_LENGTH = 0.18
+# 날아가는 동안의 작은 떨림: 1초에 떨리는 횟수와 크기(px), 무회전슛이 이어지는 최대 시간(초)
+KNUCKLE_WOBBLE_PER_SECOND = 5.0
+KNUCKLE_WOBBLE_SIZE = 6
+KNUCKLE_TIME = 2.5
+# 공 회전 애니메이션 배율: 드라이브슛은 앞으로 빠르게 감겨 돌고 (탑스핀), 무회전슛은 돌지 않음
+DRIVE_SPIN_RATE = 2.5
+
 # 파워슛 잔상: 세게 찬 공 뒤에 남기는 반투명한 공의 수, 잔상끼리의 시간 간격(초), 잔상을 남기는 최대 시간(초)
 TRAIL_COUNT = 6
 TRAIL_INTERVAL = 0.025
@@ -117,8 +135,14 @@ class Ball:
         self.pingpong = 0
         # 남은 머리 충돌 무시 시간
         self.head_ignore = 0.0
-        # 드라이브슛으로 날아가는 중인지 (다른 데 맞거나 바닥에 닿으면 끝)
+        # 드라이브슛, 무회전슛으로 날아가는 중인지 (다른 데 맞거나 바닥에 닿으면 끝)
         self.drive = False
+        self.knuckle = False
+        # 무회전슛: 찬 뒤 지난 시간, 찬 곳 (x, 높이), 노리는 골대 입구 x, 솟아오르기 시작하는 비율
+        self.knuckle_time = 0.0
+        self.knuckle_start_x, self.knuckle_start_y = 0.0, 0.0
+        self.knuckle_target_x = 0.0
+        self.knuckle_rise_at = 0.0
         # 파워슛 잔상: 남은 잔상 시간, 지난 위치들 (최근 것이 앞), 다음 위치를 남길 때까지 남은 시간
         self.trail_time = 0.0
         self.trail = []
@@ -131,13 +155,19 @@ class Ball:
         self.head_ignore = max(self.head_ignore - game_framework.frame_time, 0)
         self.x += self.vx * game_framework.frame_time
         self.y += self.vy * game_framework.frame_time
-        # 드라이브슛은 꼭대기를 지나 내려올 때 중력을 더 세게 받아 뚝 떨어짐
-        gravity_rate = DRIVE_DIP_RATE if self.drive and self.vy < 0 else 1.0
+        # 드라이브슛은 꼭대기를 지나 내려올 때 중력을 더 세게 받아 뚝 떨어지고, 무회전슛은 중력 없이 정해진 길로 날아감
+        gravity_rate = 1.0
+        if self.drive and self.vy < 0:
+            gravity_rate = DRIVE_DIP_RATE
+        elif self.knuckle:
+            gravity_rate = 0.0
         self.vy -= GRAVITY_PPS2 * gravity_rate * game_framework.frame_time
+        if self.knuckle:
+            self.update_knuckle()
 
         if self.y - 32 < 80:
             self.y = 80 + 32
-            self.drive = False
+            self.stop_special_flight()
             self.vy = -self.vy * GROUND_BOUNCE_RATE
             if self.vy < BOUNCE_STOP_SPEED_PPS:
                 self.vy = 0
@@ -154,7 +184,9 @@ class Ball:
             self.x = 1280 - 32
             self.vx = -self.vx * 0.7
 
-        self.frame = (self.frame + self.vx * game_framework.frame_time / PIXELS_PER_FRAME) % 8
+        # 굴러가는 만큼 돌고, 드라이브슛은 더 빨리 감겨 돌며, 무회전슛은 돌지 않음
+        spin_rate = 0.0 if self.knuckle else DRIVE_SPIN_RATE if self.drive else 1.0
+        self.frame = (self.frame + self.vx * spin_rate * game_framework.frame_time / PIXELS_PER_FRAME) % 8
         self.update_trail()
 
     def start_trail(self):
@@ -189,7 +221,7 @@ class Ball:
     def bounce_from(self, cx, cy, r, head_vy, header):
         # head_vy: 머리가 위아래로 움직이는 속도 (점프 중이 아니면 0)
         # header: 헤딩한 선수 (머리 사이 왕복 판정용)
-        self.drive = False
+        self.stop_special_flight()
 
         # 같은 선수 머리에 아주 짧은 시간 안에 또 맞았으면, 공이 머리에 붙어 같이 움직이는 것
         stuck_on_head = self.last_header is header and self.time_since_head < HEAD_STUCK_TIME
@@ -234,7 +266,7 @@ class Ball:
             self.pingpong = 0
 
     def bounce_from_box(self, left, bottom, right, top):
-        self.drive = False
+        self.stop_special_flight()
         # 사각형 위에서 공 중심과 가장 가까운 점
         px = clamp(left, self.x, right)
         py = clamp(bottom, self.y, top)
@@ -261,14 +293,14 @@ class Ball:
 
     def swept(self, face_dir):
         # 하드태클에 쓸려 진행 방향으로 낮고 빠르게 굴러감
-        self.drive = False
+        self.stop_special_flight()
         self.vx = face_dir * TACKLE_SWEEP_X_PPS
         self.vy = TACKLE_SWEEP_Y_PPS
 
     def dribbled(self, x, vx):
         # 트릭스터 발 앞에 붙어 바닥으로 같이 굴러감
         # x: 붙을 가로 위치, vx: 선수가 움직이는 속도 (공 회전 애니메이션용)
-        self.drive = False
+        self.stop_special_flight()
         self.x = clamp(32, x, 1280 - 32)
         self.y = 80 + 32
         self.vx, self.vy = vx, 0
@@ -280,7 +312,7 @@ class Ball:
 
     def repelled(self, cx, cy, r):
         # 철벽 방어 보호막(원)에 맞으면 원 바깥쪽으로 세게 튕겨 나감
-        self.drive = False
+        self.stop_special_flight()
         dx, dy = self.x - cx, self.y - cy
         d = math.sqrt(dx * dx + dy * dy)
         if d == 0:
@@ -295,9 +327,55 @@ class Ball:
 
     def overhead_kicked(self, face_dir, power_rate):
         # 오버헤드킥: 바라보는 쪽 아래 대각선으로 세게 내리꽂음 (power_rate: 찬 선수의 킥 세기 배율)
-        self.drive = False
+        self.stop_special_flight()
         self.vx = face_dir * OVERHEAD_SPEED_X_PPS * power_rate
         self.vy = -OVERHEAD_SPEED_DOWN_PPS * power_rate
+        self.start_trail()
+
+    def stop_special_flight(self):
+        # 드라이브슛, 무회전슛을 끝내고 보통 공으로 (다른 데 맞거나 바닥에 닿았을 때)
+        self.drive = False
+        self.knuckle = False
+
+    def knuckle_height(self, progress):
+        # 무회전슛 길에서 골대까지 간 비율(0~1)에 맞는 높이 (점과 점 사이를 부드럽게 이음)
+        rise_at = self.knuckle_rise_at
+        points = ((0.0, self.knuckle_start_y), (rise_at, KNUCKLE_LOW_Y),
+                  (rise_at + KNUCKLE_RISE_LENGTH, KNUCKLE_HIGH_Y), (1.0, DRIVE_TARGET_Y))
+        for (p0, y0), (p1, y1) in zip(points, points[1:]):
+            if progress <= p1:
+                t = (progress - p0) / (p1 - p0)
+                t = t * t * (3 - 2 * t)
+                return y0 + (y1 - y0) * t
+        return DRIVE_TARGET_Y
+
+    def update_knuckle(self):
+        # 무회전슛: 골대까지 간 비율로 정해진 높이에 공을 두고, 작게 떨리게 함 (위아래 속도도 맞춰 둠)
+        self.knuckle_time += game_framework.frame_time
+        progress = (self.x - self.knuckle_start_x) / (self.knuckle_target_x - self.knuckle_start_x)
+        if self.knuckle_time > KNUCKLE_TIME or progress >= 1.0:
+            # 골대 입구 앞에 닿으면 무회전슛을 끝내고 그대로 내려가며 골망으로 들어감
+            self.knuckle = False
+            return
+        wobble = KNUCKLE_WOBBLE_SIZE * math.sin(2 * math.pi * KNUCKLE_WOBBLE_PER_SECOND * self.knuckle_time)
+        new_y = self.knuckle_height(max(progress, 0.0)) + wobble
+        if game_framework.frame_time > 0:
+            self.vy = (new_y - self.y) / game_framework.frame_time
+        self.y = new_y
+
+    def knuckle_kicked(self, face_dir, power_rate):
+        # 무회전슛: 빠르게 차고, 솟아오를 곳을 매번 조금씩 다르게 정함 (power_rate: 찬 선수의 킥 세기 배율)
+        self.stop_special_flight()
+        self.vx = face_dir * KNUCKLE_SPEED_X_PPS * power_rate
+        self.vy = 0
+        self.knuckle = True
+        self.knuckle_time = 0.0
+        self.knuckle_start_x, self.knuckle_start_y = self.x, self.y
+        self.knuckle_target_x = 1280 - DRIVE_TARGET_GAP if face_dir == 1 else DRIVE_TARGET_GAP
+        # 골대에 너무 가까이서 차면 바로 골대 입구로 감 (나누기가 0이 되지 않게)
+        if abs(self.knuckle_target_x - self.x) < 1:
+            self.knuckle_target_x = self.x + face_dir
+        self.knuckle_rise_at = random.uniform(*KNUCKLE_RISE_AT_RANGE)
         self.start_trail()
 
     def drive_kicked(self, face_dir):
@@ -324,7 +402,7 @@ class Ball:
     def kicked(self, face_dir, power_rate, power_shot):
         # power_rate: 찬 선수의 킥 세기 배율 (파워 3이 1.0배)
         # power_shot: 파워슛이면 가로 속도를 크게 올림
-        self.drive = False
+        self.stop_special_flight()
         self.vx = face_dir * KICK_SPEED_X_PPS * power_rate
         self.vy = KICK_SPEED_Y_PPS * power_rate
         if power_shot:

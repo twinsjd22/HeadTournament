@@ -135,7 +135,7 @@ class Character:
         self.touch_cooldown = 0.0
         # 파워슛 준비 상태 (필살 스킬을 쓰면 다음 킥이 파워슛)
         self.power_shot = False
-        # 필살 킥 준비 상태 (감아차기형 등, 필살 스킬을 쓰면 다음 킥이 자기 필살 킥)
+        # 필살 킥 준비 상태 (감아차기형, 무회전형, 필살 스킬을 쓰면 다음 킥이 자기 필살 킥)
         self.skill_kick = False
         # 이번 킥에서 이미 공을 찼는지 (킥 한 번에 공은 한 번만 맞음)
         self.kick_hit = False
@@ -154,7 +154,7 @@ class Character:
         # TRICK: 트릭스터 (개인기형 필살 스킬, 약 1초 동안 개인기 동작으로 이동)
         # TACKLE: 하드태클 (수비형 필살 스킬, 앞으로 미끄러지며 대시)
         # FALL: 하드태클에 맞아 넘어짐 (잠시 움직이지 못함, 점프 중에는 맞지 않음)
-        # SKILL_KICK: 필살 킥 (감아차기형 드라이브슛 등, 필살 스킬로 준비한 뒤 Space로 차는 자기 필살기 줄의 킥)
+        # SKILL_KICK: 필살 킥 (감아차기형 드라이브슛, 무회전형 무회전슛, 필살 스킬로 준비한 뒤 Space로 차는 자기 필살기 줄의 킥)
         # GROW: 거대화 기합 (거인형 필살 스킬, 잠깐 제자리에서 커진 뒤 평소처럼 움직이며 커진 채 지냄)
         # OVERHEAD: 오버헤드킥 (공중형 필살 스킬, 점프 중에 몸을 뒤집어 차고 등으로 착지)
         # GUARD: 철벽 방어 (골키퍼형 필살 스킬, 1초 동안 보호막으로 주변 공을 튕겨 냄, 이때는 태클에 넘어지지 않음)
@@ -442,7 +442,7 @@ class Character:
         if self.char_type == 'aerial':
             if self.state != 'JUMP':
                 return
-        elif self.char_type not in ('power', 'curve') and self.state not in ('IDLE', 'RUN'):
+        elif self.char_type not in ('power', 'curve', 'knuckle') and self.state not in ('IDLE', 'RUN'):
             return
         self.gauge = 0
         # 경기 화면이 컷인을 띄울 수 있게 알림 (경기 화면이 보고 나서 다시 False로)
@@ -450,7 +450,7 @@ class Character:
         print(f'필살 스킬 사용 : {CHARACTER_TYPES[self.char_type]["skill"]}')
         if self.char_type == 'power':
             self.power_shot = True
-        elif self.char_type == 'curve':
+        elif self.char_type in ('curve', 'knuckle'):
             self.skill_kick = True
         elif self.char_type == 'trickster':
             self.trick()
