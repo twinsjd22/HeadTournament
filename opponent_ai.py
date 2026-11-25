@@ -36,6 +36,13 @@ JUMP_OVER_DISTANCE = 90
 HEADING_OFFSET = 20
 # 필살 스킬: 게이지가 가득 차고 공이 바라보는 쪽 앞 이 거리 안에 낮게 있으면 사용
 SKILL_DISTANCE = 150
+# 수비 (골대 지키기): 공이 이 속도보다 빠르게 자기 골대 쪽(오른쪽)으로 오거나,
+# 공이 자기 골대에서 이 거리 안인데 AI보다 골대 쪽에 있으면 위험으로 봄
+DANGER_BALL_SPEED_PPS = 2.5 * (150.0 / 1.75)
+DANGER_DISTANCE = 480
+# 지킬 때는 공보다 이만큼 골대 쪽에 서되, 이 x보다 골대 안쪽으로는 들어가지 않음
+DEFEND_GAP = 70
+DEFEND_MAX_X = 1170
 # 철벽 방어 (골키퍼형): 공이 이 속도보다 빠르게 자기 골대 쪽으로 날아오며, 이 거리 안에 이 높이보다 낮게 오면 사용
 GUARD_BALL_SPEED_PPS = 3.0 * (150.0 / 1.75)
 GUARD_DISTANCE = 140
@@ -176,6 +183,42 @@ class Kick(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
+class IsGoalInDanger(py_trees.behaviour.Behaviour):
+    # Condition "Is Goal In Danger": 자기 골대(오른쪽)가 위험한가?
+    # 공이 자기 골대 쪽으로 빠르게 오거나, 골대 가까이에서 공이 AI보다 골대 쪽에 있을 때
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        coming = ball.vx > DANGER_BALL_SPEED_PPS and ball.x < character.x + 40
+        behind = 1280 - ball.x < DANGER_DISTANCE and ball.x > character.x
+        if coming or behind:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class SetDefendLocation(py_trees.behaviour.Behaviour):
+    # Action "Set Defend Location": 공과 자기 골대 사이 (공보다 골대 쪽)를 서야 할 자리로 블랙보드 target 에 기록
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+        self.blackboard.register_key(key='target', access=py_trees.common.Access.WRITE)
+
+    def update(self):
+        ball = self.blackboard.ball
+        self.blackboard.target = min(ball.x + DEFEND_GAP, DEFEND_MAX_X)
+        return py_trees.common.Status.SUCCESS
+
+
 class IsBallFallingToHead(py_trees.behaviour.Behaviour):
     # Condition "Is Ball Falling To Head": 공이 머리 높이로 가까이 내려오는가? (점프 헤딩할 때)
     # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 왼쪽 앞에 있을 때만)
@@ -259,12 +302,19 @@ class OpponentAI:
             IsBallLowBehind('Is Ball Low Behind', self),
             Jump('Jump Over Ball', self),
         ])
+        # 수비: 골대가 위험하면 공과 골대 사이로 돌아가 섬 (보통 위치 잡기보다 먼저)
+        defend = py_trees.composites.Sequence('Defend', memory=False, children=[
+            IsGoalInDanger('Is Goal In Danger', self),
+            SetDefendLocation('Set Defend Location', self),
+            MoveTo('Move To Defend', self),
+        ])
         position = py_trees.composites.Sequence('Position', memory=False, children=[
             SetTargetLocation('Set Target Location', self),
             MoveTo('Move To', self),
         ])
+        # 킥과 헤딩은 공을 걷어 내는 수비도 되므로 가장 먼저, 넘어가기는 골대 쪽으로 달려갈 때 필요해서 수비보다 먼저
         think_and_act = py_trees.composites.Selector('Think and Act', memory=False,
-                                                     children=[kick, header, jump_over, position])
+                                                     children=[kick, header, jump_over, defend, position])
         root = py_trees.composites.Sequence('Opponent AI', memory=False, children=[
             SenseBall('Sense Ball', self),
             think_and_act,
