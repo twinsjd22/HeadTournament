@@ -65,6 +65,49 @@ def predict_landing_x(ball):
     return min(max(ball.x + ball.vx * time, 32), 1280 - 32)
 
 
+class SenseBall(py_trees.behaviour.Behaviour):
+    # Action "Sense Ball": 반응 지연만큼 전의 공(AI가 본 공)을 블랙보드 ball 에 기록 (감지)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        # 이 노드가 쓰는 AI (공 기록을 갖고 있음)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.WRITE)
+
+    def update(self):
+        self.blackboard.ball = self.ai.seen_ball()
+        return py_trees.common.Status.SUCCESS
+
+
+class SetTargetLocation(py_trees.behaviour.Behaviour):
+    # Action "Set Target Location": 감지한 공을 보고 AI가 서야 할 가로 위치를 블랙보드 target 에 기록
+    # 공이 낮으면 공 오른쪽에 서서 플레이어 골대 쪽으로 밀고,
+    # 높으면 공이 떨어질 자리보다 약간 오른쪽에 미리 서서 헤딩이 플레이어 쪽으로 가게 함
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+        self.blackboard.register_key(key='target', access=py_trees.common.Access.WRITE)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        if ball.y < BALL_LOW_HEIGHT:
+            target_x = ball.x + BEHIND_DISTANCE
+        else:
+            # 공중형이 오버헤드킥을 노릴 때는 공이 차는 발 쪽(뒤쪽)으로 떨어지게 왼쪽에 섬
+            if character.char_type == 'aerial' and character.gauge >= GAUGE_MAX:
+                offset = -OVERHEAD_STAND_OFFSET
+            else:
+                offset = HEADING_OFFSET
+            target_x = predict_landing_x(ball) + offset
+        self.blackboard.target = target_x
+        return py_trees.common.Status.SUCCESS
+
+
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
     # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
@@ -77,11 +120,14 @@ class OpponentAI:
         # 지난 공 모습 기록 (시각, 위치와 속도), 지난 시간
         self.ball_history = deque()
         self.elapsed = 0.0
-        # 블랙보드: AI가 감지한 정보를 판단하는 쪽과 함께 보는 공용 메모장
-        # ball : 반응 지연만큼 전의 공 (감지한 공)
+        # 블랙보드: 노드들이 함께 보는 공용 메모장
+        # ball : 반응 지연만큼 전의 공 (감지한 공), target : 서야 할 가로 위치
         self.blackboard = py_trees.blackboard.Client(name='Opponent AI')
-        self.blackboard.register_key(key='ball', access=py_trees.common.Access.WRITE)
-        self.blackboard.ball = None
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+        self.blackboard.register_key(key='target', access=py_trees.common.Access.READ)
+        # 행동 트리 노드 (아직 트리로 묶지 않고 매 프레임 직접 한 번씩 실행)
+        self.sense_ball_node = SenseBall('Sense Ball', self)
+        self.set_target_node = SetTargetLocation('Set Target Location', self)
 
     def seen_ball(self):
         # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
@@ -102,24 +148,15 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 감지: 반응 지연만큼 전의 공을 블랙보드에 기록
-        self.blackboard.ball = self.seen_ball()
-        # 판단: 진짜 공 대신 블랙보드에 적힌 감지한 공을 보고 판단함
+        # 감지 노드가 공을, 위치 노드가 서야 할 자리를 블랙보드에 기록
+        self.sense_ball_node.tick_once()
+        self.set_target_node.tick_once()
+        # 판단: 진짜 공 대신 블랙보드에 적힌 감지한 공과 서야 할 자리를 보고 판단함
         ball = self.blackboard.ball
         dx = ball.x - self.character.x
 
-        # 규칙 1: 공 쪽으로 이동
-        # 공이 낮으면 공 오른쪽에 서서 플레이어 골대 쪽으로 밀고,
-        # 높으면 공이 떨어질 자리보다 약간 오른쪽에 미리 서서 헤딩이 플레이어 쪽으로 가게 함
-        if ball.y < BALL_LOW_HEIGHT:
-            target_dx = ball.x + BEHIND_DISTANCE - self.character.x
-        else:
-            # 공중형이 오버헤드킥을 노릴 때는 공이 차는 발 쪽(뒤쪽)으로 떨어지게 왼쪽에 섬
-            if self.character.char_type == 'aerial' and self.character.gauge >= GAUGE_MAX:
-                offset = -OVERHEAD_STAND_OFFSET
-            else:
-                offset = HEADING_OFFSET
-            target_dx = predict_landing_x(ball) + offset - self.character.x
+        # 규칙 1: 서야 할 자리 쪽으로 이동
+        target_dx = self.blackboard.target - self.character.x
         if self.character.dir == 0:
             if abs(target_dx) > FOLLOW_START_DISTANCE:
                 self.move(1 if target_dx > 0 else -1)
