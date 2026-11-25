@@ -327,6 +327,57 @@ class IsPlayerBlocking(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.FAILURE
 
 
+class SkillCondition(py_trees.behaviour.Behaviour):
+    # 필살기 Condition 들의 부모: 블랙보드의 감지한 공을 읽고, 플레이어 골대 쪽(왼쪽)을 볼 때만 검사함
+    # (자식 클래스는 check(ball, dx) 만 만들면 됨, dx: AI에서 공까지의 가로 거리)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        if character.face_dir == -1 and self.check(ball, ball.x - character.x):
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class IsShotComing(SkillCondition):
+    # Condition "Is Shot Coming" (골키퍼형 철벽 방어): 슛이 자기 골대 쪽으로 빠르게 날아와 가까이 왔는가?
+
+    def check(self, ball, dx):
+        return ball.vx > GUARD_BALL_SPEED_PPS and -GUARD_DISTANCE < dx < 0 and ball.y < GUARD_MAX_HEIGHT
+
+
+class IsHighBallNear(SkillCondition):
+    # Condition "Is High Ball Near" (거인형 거대화): 높은 공이 가까이 떨어지고 있는가?
+
+    def check(self, ball, dx):
+        return abs(dx) < GIANT_DISTANCE and GIANT_MIN_HEIGHT < ball.y < GIANT_MAX_HEIGHT and ball.vy < 0
+
+
+class IsBallBehindHead(SkillCondition):
+    # Condition "Is Ball Behind Head" (공중형): 서 있는데 공이 머리 위 뒤쪽(자기 골대 쪽)으로 떨어지는가? (오버헤드킥 점프)
+
+    def check(self, ball, dx):
+        return (self.ai.character.state != 'JUMP' and 0 < dx < OVERHEAD_JUMP_DISTANCE
+                and OVERHEAD_MIN_HEIGHT < ball.y < OVERHEAD_MAX_HEIGHT and ball.vy < 0)
+
+
+class IsBallAtOverheadFoot(SkillCondition):
+    # Condition "Is Ball At Overhead Foot" (공중형): 점프 중 공이 오버헤드킥으로 차는 발 가까이 왔는가?
+
+    def check(self, ball, dx):
+        character = self.ai.character
+        if character.state != 'JUMP':
+            return False
+        foot_x, foot_y, foot_r = character.get_overhead_foot()
+        return math.hypot(ball.x - foot_x, ball.y - foot_y) < OVERHEAD_USE_DISTANCE
+
+
 class UseSkill(py_trees.behaviour.Behaviour):
     # Action "Use Skill": 필살 스킬 사용 (슛 계열은 다음 킥을 필살 슛으로 준비, Kick 가지가 이어서 참)
 
@@ -389,8 +440,8 @@ class Jump(py_trees.behaviour.Behaviour):
 
 
 class OpponentAI:
-    # 상대 선수를 움직이는 규칙형 AI
-    # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
+    # 상대 선수를 움직이는 행동 트리 AI (py_trees)
+    # 매 프레임 트리를 tick 해서 감지 → 할 일 하나를 고르고, 키보드 대신 상태 머신 이벤트(move_start, jump, kick 등)를 넣어 줌
 
     def __init__(self, character, reaction_delay=0.0):
         # character: AI가 조종할 선수
@@ -400,11 +451,8 @@ class OpponentAI:
         # 지난 공 모습 기록 (시각, 위치와 속도), 지난 시간
         self.ball_history = deque()
         self.elapsed = 0.0
-        # 블랙보드: 노드들이 함께 보는 공용 메모장
-        # ball : 반응 지연만큼 전의 공 (감지한 공), target : 서야 할 가로 위치
-        self.blackboard = py_trees.blackboard.Client(name='Opponent AI')
-        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
-        self.blackboard.register_key(key='target', access=py_trees.common.Access.READ)
+        # 블랙보드 (노드들이 함께 보는 공용 메모장)는 노드들이 직접 연결해 씀
+        # ball : 반응 지연만큼 전의 공 (Sense Ball 이 씀), target : 서야 할 가로 위치 (Set ... Location 이 씀)
         self.build_behavior_tree()
 
     def build_behavior_tree(self):
@@ -430,6 +478,34 @@ class OpponentAI:
                 IsGaugeFull('Is Gauge Full', self),
                 IsPlayerOnBall('Is Player On Ball', self),
                 UseSkill('Use Tackle', self),
+            ]))
+        elif self.character.char_type == 'keeper':
+            # 철벽 방어: 슛이 가까이 날아오면 받아침
+            branches.append(py_trees.composites.Sequence('Guard Skill', memory=False, children=[
+                IsGaugeFull('Is Gauge Full', self),
+                IsShotComing('Is Shot Coming', self),
+                UseSkill('Use Guard', self),
+            ]))
+        elif self.character.char_type == 'giant':
+            # 거대화: 높은 공이 가까이 떨어지면 커져서 공중볼을 따냄
+            branches.append(py_trees.composites.Sequence('Giant Skill', memory=False, children=[
+                IsGaugeFull('Is Gauge Full', self),
+                IsHighBallNear('Is High Ball Near', self),
+                UseSkill('Use Giant', self),
+            ]))
+        elif self.character.char_type == 'aerial':
+            # 오버헤드킥: 점프 중 공이 차는 발에 오면 차고, 서 있을 때 공이 머리 위 뒤쪽으로 떨어지면 먼저 점프
+            branches.append(py_trees.composites.Selector('Overhead Skill', memory=False, children=[
+                py_trees.composites.Sequence('Overhead Kick', memory=False, children=[
+                    IsGaugeFull('Is Gauge Full', self),
+                    IsBallAtOverheadFoot('Is Ball At Overhead Foot', self),
+                    UseSkill('Use Overhead', self),
+                ]),
+                py_trees.composites.Sequence('Jump For Overhead', memory=False, children=[
+                    IsGaugeFull('Is Gauge Full Before Jump', self),
+                    IsBallBehindHead('Is Ball Behind Head', self),
+                    Jump('Jump To Overhead', self),
+                ]),
             ]))
         elif self.character.char_type == 'trickster':
             # 트릭스터: 공을 가졌는데 플레이어가 앞을 막으면 드리블로 뚫고 지나감
@@ -491,7 +567,7 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 행동 트리를 한 번 실행 (감지 → 킥, 헤딩, 넘어가기, 위치 잡기 중 하나)
+        # 행동 트리를 한 번 실행 (감지 → 필살기, 킥, 슛 막기, 헤딩, 넘어가기, 수비, 위치 잡기 중 하나)
         self.bt.tick()
         # 확인용: F1 표시를 켰을 때만 트리 상태가 바뀌면 콘솔에 출력 (✓ SUCCESS, ✕ FAILURE, * RUNNING)
         if debug_view.show_bounding:
@@ -499,34 +575,6 @@ class OpponentAI:
             if snapshot != self.bt_snapshot:
                 print(snapshot)
                 self.bt_snapshot = snapshot
-
-        # 아직 트리로 옮기지 않은 규칙 (필살기): 블랙보드에 적힌 감지한 공을 보고 판단함
-        ball = self.blackboard.ball
-        dx = ball.x - self.character.x
-        front = dx * self.character.face_dir
-
-        # 규칙 5: 게이지가 가득 차면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만, 유형마다 쓰는 상황이 다름)
-        if self.character.gauge >= GAUGE_MAX and self.character.face_dir == -1:
-            self.use_skill(ball, dx, front)
-
-    def use_skill(self, ball, dx, front):
-        char_type = self.character.char_type
-        if char_type == 'giant':
-            # 거대화: 높은 공이 가까이 떨어지고 있을 때 커져서 공중볼을 따냄 (서 있거나 달릴 때만 커짐)
-            if abs(dx) < GIANT_DISTANCE and GIANT_MIN_HEIGHT < ball.y < GIANT_MAX_HEIGHT and ball.vy < 0:
-                self.character.use_skill()
-        elif char_type == 'keeper':
-            # 철벽 방어: 슛이 자기 골대 쪽으로 빠르게 날아와 가까이 왔을 때 받아침
-            if ball.vx > GUARD_BALL_SPEED_PPS and -GUARD_DISTANCE < dx < 0 and ball.y < GUARD_MAX_HEIGHT:
-                self.character.use_skill()
-        elif char_type == 'aerial':
-            # 오버헤드킥: 공이 머리 위 뒤쪽으로 떨어지면 점프하고, 점프 중 공이 차는 발 가까이 오면 사용
-            if self.character.state == 'JUMP':
-                foot_x, foot_y, foot_r = self.character.get_overhead_foot()
-                if math.hypot(ball.x - foot_x, ball.y - foot_y) < OVERHEAD_USE_DISTANCE:
-                    self.character.use_skill()
-            elif 0 < dx < OVERHEAD_JUMP_DISTANCE and OVERHEAD_MIN_HEIGHT < ball.y < OVERHEAD_MAX_HEIGHT and ball.vy < 0:
-                self.character.jump()
 
     def draw(self):
         pass
