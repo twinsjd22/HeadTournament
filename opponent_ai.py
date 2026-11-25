@@ -176,6 +176,55 @@ class Kick(py_trees.behaviour.Behaviour):
         return py_trees.common.Status.SUCCESS
 
 
+class IsBallFallingToHead(py_trees.behaviour.Behaviour):
+    # Condition "Is Ball Falling To Head": 공이 머리 높이로 가까이 내려오는가? (점프 헤딩할 때)
+    # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 왼쪽 앞에 있을 때만)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        dx = ball.x - self.ai.character.x
+        if -JUMP_DISTANCE < dx <= 0 and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class IsBallLowBehind(py_trees.behaviour.Behaviour):
+    # Condition "Is Ball Low Behind": 자기 골대 쪽(오른쪽)으로 달리는데 공이 그 앞에 낮게 있는가?
+    # (그대로 달리면 공을 자기 골대 쪽으로 밀게 되므로 점프해서 넘어갈 때)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+        self.blackboard = self.attach_blackboard_client(name=name)
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.READ)
+
+    def update(self):
+        ball = self.blackboard.ball
+        character = self.ai.character
+        dx = ball.x - character.x
+        if character.dir == 1 and 0 < dx < JUMP_OVER_DISTANCE and ball.y < BALL_LOW_HEIGHT:
+            return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.FAILURE
+
+
+class Jump(py_trees.behaviour.Behaviour):
+    # Action "Jump": 점프 (헤딩할 때와 공을 넘어갈 때 같은 동작, 노드는 쓰는 곳마다 따로 만듦)
+
+    def __init__(self, name, ai):
+        super().__init__(name)
+        self.ai = ai
+
+    def update(self):
+        self.ai.character.jump()
+        return py_trees.common.Status.SUCCESS
+
+
 class OpponentAI:
     # 상대 선수를 움직이는 규칙형 AI
     # 키보드 대신 상태 머신 이벤트(move_start, move_stop, jump, kick)를 넣어 줌
@@ -202,11 +251,20 @@ class OpponentAI:
             IsBallAtFoot('Is Ball At Foot', self),
             Kick('Kick', self),
         ])
+        header = py_trees.composites.Sequence('Header', memory=False, children=[
+            IsBallFallingToHead('Is Ball Falling To Head', self),
+            Jump('Jump To Head', self),
+        ])
+        jump_over = py_trees.composites.Sequence('Jump Over', memory=False, children=[
+            IsBallLowBehind('Is Ball Low Behind', self),
+            Jump('Jump Over Ball', self),
+        ])
         position = py_trees.composites.Sequence('Position', memory=False, children=[
             SetTargetLocation('Set Target Location', self),
             MoveTo('Move To', self),
         ])
-        think_and_act = py_trees.composites.Selector('Think and Act', memory=False, children=[kick, position])
+        think_and_act = py_trees.composites.Selector('Think and Act', memory=False,
+                                                     children=[kick, header, jump_over, position])
         root = py_trees.composites.Sequence('Opponent AI', memory=False, children=[
             SenseBall('Sense Ball', self),
             think_and_act,
@@ -234,7 +292,7 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 행동 트리를 한 번 실행 (감지 → 킥 또는 위치 잡기)
+        # 행동 트리를 한 번 실행 (감지 → 킥, 헤딩, 넘어가기, 위치 잡기 중 하나)
         self.bt.tick()
         # 확인용: F1 표시를 켰을 때만 트리 상태가 바뀌면 콘솔에 출력 (✓ SUCCESS, ✕ FAILURE, * RUNNING)
         if debug_view.show_bounding:
@@ -243,20 +301,9 @@ class OpponentAI:
                 print(snapshot)
                 self.bt_snapshot = snapshot
 
-        # 아직 트리로 옮기지 않은 규칙: 블랙보드에 적힌 감지한 공을 보고 판단함
+        # 아직 트리로 옮기지 않은 규칙 (필살기): 블랙보드에 적힌 감지한 공을 보고 판단함
         ball = self.blackboard.ball
         dx = ball.x - self.character.x
-
-        # 규칙 4: 공이 오른쪽 앞(자기 골대 쪽)에 낮게 있으면 밀지 않도록 점프해서 넘어감
-        if self.character.dir == 1 and 0 < dx < JUMP_OVER_DISTANCE and ball.y < BALL_LOW_HEIGHT:
-            self.character.jump()
-
-        # 규칙 2: 공이 머리 높이로 가까이 내려오면 점프해서 헤딩
-        # (공이 머리 오른쪽에 있으면 자기 골대 쪽으로 튕기므로 점프하지 않음)
-        if -JUMP_DISTANCE < dx <= 0 and JUMP_MIN_HEIGHT < ball.y < JUMP_MAX_HEIGHT and ball.vy < 0:
-            self.character.jump()
-
-        # 규칙 3 (킥)은 행동 트리의 Kick 가지로 옮김
         front = dx * self.character.face_dir
 
         # 규칙 5: 게이지가 가득 차면 필살 스킬 사용 (플레이어 골대 쪽을 볼 때만, 유형마다 쓰는 상황이 다름)
