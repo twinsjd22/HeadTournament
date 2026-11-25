@@ -2,6 +2,8 @@ import math
 from collections import deque
 from types import SimpleNamespace
 
+import py_trees
+
 import common
 import game_framework
 
@@ -75,6 +77,11 @@ class OpponentAI:
         # 지난 공 모습 기록 (시각, 위치와 속도), 지난 시간
         self.ball_history = deque()
         self.elapsed = 0.0
+        # 블랙보드: AI가 감지한 정보를 판단하는 쪽과 함께 보는 공용 메모장
+        # ball : 반응 지연만큼 전의 공 (감지한 공)
+        self.blackboard = py_trees.blackboard.Client(name='Opponent AI')
+        self.blackboard.register_key(key='ball', access=py_trees.common.Access.WRITE)
+        self.blackboard.ball = None
 
     def seen_ball(self):
         # 반응 지연만큼 전의 공 모습 (지금 공을 기록하고, 지연보다 오래된 기록은 버림)
@@ -95,8 +102,10 @@ class OpponentAI:
             self.character.move_start()
 
     def update(self):
-        # 진짜 공 대신 반응 지연만큼 전의 공을 보고 판단함
-        ball = self.seen_ball()
+        # 감지: 반응 지연만큼 전의 공을 블랙보드에 기록
+        self.blackboard.ball = self.seen_ball()
+        # 판단: 진짜 공 대신 블랙보드에 적힌 감지한 공을 보고 판단함
+        ball = self.blackboard.ball
         dx = ball.x - self.character.x
 
         # 규칙 1: 공 쪽으로 이동
