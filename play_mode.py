@@ -12,6 +12,7 @@ import loading_mode
 import name_mode
 import pause_mode
 import records
+import sound
 import title_mode
 import tournament
 from background import Background
@@ -213,6 +214,9 @@ def init():
     # 경기 한 판 (그림이 없어서 어느 레이어든 상관없지만, 경기 진행은 UI와 함께 둠)
     match = Match()
     game_world.add_object(match, 2)
+
+    # 경기 BGM (다음 라운드나 다시 시작으로 들어와도 같은 BGM이라 끊기지 않음, 메인 화면으로 가면 title BGM으로 바뀜)
+    sound.play_bgm('match')
 
 
 def finish():
