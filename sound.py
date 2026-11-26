@@ -48,5 +48,9 @@ def play_bgm(name):
 
 
 def stop_bgm():
-    # BGM 끄기
-    pass
+    # BGM 끄기 (끈 뒤 같은 BGM을 다시 틀 수 있게 이름도 지움)
+    global current_bgm
+
+    if current_bgm is not None:
+        bgms[current_bgm].stop()
+        current_bgm = None
