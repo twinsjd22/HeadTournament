@@ -25,8 +25,12 @@ current_bgm = None
 
 
 def play(name):
-    # 효과음 한 번 재생
-    pass
+    # 효과음 한 번 재생 (처음이면 불러 두고 볼륨을 맞춤)
+    if name not in sfx:
+        path, volume = SFX_FILES[name]
+        sfx[name] = load_wav(path)
+        sfx[name].set_volume(volume)
+    sfx[name].play()
 
 
 def play_bgm(name):
