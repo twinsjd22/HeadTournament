@@ -6,6 +6,7 @@ import game_framework
 import loading_mode
 import ranking_mode
 import select_mode
+import sound
 import tournament
 
 # 메뉴 글자 (위에서부터 이 순서로 버튼을 놓음)
@@ -41,6 +42,8 @@ def init():
     button_normal = load_image('resource/btn_normal.png')
     button_selected = load_image('resource/btn_selected.png')
     font = load_font('resource/BlackHanSans-Regular.ttf', FONT_SIZE)
+    # 메인 화면 BGM (랭킹, 선택 화면으로 가도 바꾸지 않으므로 끊기지 않고 이어짐)
+    sound.play_bgm('title')
 
 
 def finish():
