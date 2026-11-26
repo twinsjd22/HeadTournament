@@ -332,6 +332,8 @@ def update():
             # 점프 중이면 머리가 움직이는 속도를 같이 넘김
             head_vy = character.vy if character.state == 'JUMP' else 0
             ball.bounce_from(*character.get_head(), head_vy, character)
+            # 머리에 맞는 순간 헤딩 소리 (공이 바로 머리 밖으로 튕겨 나가므로 한 번 맞을 때 한 번만 남)
+            sound.play('header')
             # 파워슛이 준비되어 있으면 헤딩도 세게, 이펙트도 크게 (한 번 쓰면 해제)
             effect_size = 128
             if character.power_shot:
