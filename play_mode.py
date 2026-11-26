@@ -322,6 +322,7 @@ def update():
                 if collide_circle(character.get_overhead_foot(), ball.get_circle()):
                     ball.overhead_kicked(character.face_dir, character.kick_power_rate)
                     character.kick_hit = True
+                    sound.play('kick')
                     foot_x, foot_y, foot_r = character.get_overhead_foot()
                     game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2, POWER_EFFECT_SIZE), 1)
                     character.touch_ball()
@@ -360,6 +361,8 @@ def update():
                     # 파워슛은 한 번 차면 해제
                     character.power_shot = False
                 character.kick_hit = True
+                # 발에 맞는 순간 킥 소리 (kick_hit으로 한 번 찰 때 한 번만 남)
+                sound.play('kick')
                 # 발과 공이 맞닿은 자리(두 중심의 가운데)에 이펙트
                 foot_x, foot_y, foot_r = character.get_foot()
                 game_world.add_object(HitEffect((foot_x + ball.x) / 2, (foot_y + ball.y) / 2, effect_size), 1)
