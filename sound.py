@@ -34,8 +34,17 @@ def play(name):
 
 
 def play_bgm(name):
-    # BGM을 바꿔서 반복 재생
-    pass
+    # BGM을 바꿔서 반복 재생 (이미 나오고 있는 BGM이면 그대로 둠)
+    global current_bgm
+
+    if current_bgm == name:
+        return
+    if name not in bgms:
+        path, volume = BGM_FILES[name]
+        bgms[name] = load_music(path)
+        bgms[name].set_volume(volume)
+    bgms[name].repeat_play()
+    current_bgm = name
 
 
 def stop_bgm():
