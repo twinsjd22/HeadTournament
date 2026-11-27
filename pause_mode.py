@@ -5,6 +5,7 @@ from pico2d import *
 import game_framework
 import game_world
 import play_mode
+import sound
 
 # 메뉴 (위에서부터 패널 그림의 버튼 순서와 같음)
 MENUS = ('계속하기', '다시 시작', '메인 메뉴')
@@ -86,12 +87,18 @@ def handle_events():
                 # 바로 경기로 돌아감
                 game_framework.pop_mode()
                 return
-            elif event.key == SDLK_UP:
-                selected = max(selected - 1, 0)
-            elif event.key == SDLK_DOWN:
-                selected = min(selected + 1, len(MENUS) - 1)
+            elif event.key in (SDLK_UP, SDLK_DOWN):
+                # 맨 위, 맨 아래에서는 더 움직이지 않음 (실제로 메뉴가 바뀔 때만 소리)
+                before = selected
+                if event.key == SDLK_UP:
+                    selected = max(selected - 1, 0)
+                else:
+                    selected = min(selected + 1, len(MENUS) - 1)
+                if selected != before:
+                    sound.play('select')
             elif event.key in (SDLK_RETURN, SDLK_KP_ENTER):
-                # Space는 경기 중 킥이라 실수로 누르기 쉬워서 Enter로만 실행
+                # Space는 경기 중 킥이라 실수로 누르기 쉬워서 Enter로만 실행 (고르면 결정 소리)
+                sound.play('select')
                 run_menu()
                 return
 
