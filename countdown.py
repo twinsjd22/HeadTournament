@@ -1,6 +1,7 @@
 from pico2d import load_image
 
 import game_framework
+import sound
 
 # 3, 2, 1을 하나씩 보여 주는 시간(초)과 "시작!"을 보여 주는 시간(초)
 NUMBER_TIME = 0.7
@@ -36,7 +37,11 @@ class Countdown:
     def update(self):
         if self.time is None:
             return
+        before = self.time
         self.time += game_framework.frame_time
+        # 3, 2, 1이 끝나고 "시작!"이 뜨는 순간 휘슬 (이번 프레임에 그 시간을 넘었을 때 한 번만)
+        if before < NUMBER_TIME * 3 <= self.time:
+            sound.play('whistle')
         if self.time >= NUMBER_TIME * 3 + START_TIME:
             self.time = None
 
