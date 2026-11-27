@@ -5,6 +5,7 @@ from pico2d import *
 import game_framework
 import loading_mode
 import play_mode
+import sound
 import title_mode
 from character_data import CHARACTER_TYPES
 
@@ -159,12 +160,18 @@ def handle_events():
             if event.key == SDLK_ESCAPE:
                 # 게임을 끄지 않고 메인 화면으로 돌아감
                 game_framework.change_mode(title_mode)
-            elif event.key == SDLK_LEFT:
-                # 왼쪽 끝에서는 더 가지 않음
-                selected = max(selected - 1, 0)
-            elif event.key == SDLK_RIGHT:
-                selected = min(selected + 1, len(TYPE_KEYS) - 1)
+            elif event.key in (SDLK_LEFT, SDLK_RIGHT):
+                # 왼쪽 끝, 오른쪽 끝에서는 더 가지 않음 (실제로 캐릭터가 바뀔 때만 소리)
+                before = selected
+                if event.key == SDLK_LEFT:
+                    selected = max(selected - 1, 0)
+                else:
+                    selected = min(selected + 1, len(TYPE_KEYS) - 1)
+                if selected != before:
+                    sound.play('select')
             elif event.key == SDLK_SPACE:
+                # 캐릭터를 고르면 결정 소리
+                sound.play('select')
                 # 로딩 화면에서 경기 리소스를 미리 불러온 뒤 경기로
                 # (어떤 유형을 골랐는지는 나중에 play_mode가 selected로 읽음)
                 loading_mode.next_mode = play_mode
