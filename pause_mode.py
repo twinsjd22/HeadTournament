@@ -36,6 +36,8 @@ def init():
     title = load_image('resource/pause_title.png')
     panel = load_image('resource/pause_panel.png')
     cursor = load_image('resource/pause_cursor.png')
+    # 메뉴가 떠 있는 동안은 경기 BGM도 멈춤
+    sound.pause_bgm()
 
 
 def finish():
@@ -43,6 +45,9 @@ def finish():
 
     # 일시정지 화면에서만 쓰는 이미지를 놓아 줌
     dim = title = panel = cursor = None
+    # 어느 메뉴로 나가든 BGM을 멈춘 자리부터 이어서 틂
+    # (다시 시작은 같은 경기 BGM이 그대로 이어지고, 메인 메뉴는 메인 화면에서 title BGM으로 바뀜)
+    sound.resume_bgm()
 
 
 def update():
