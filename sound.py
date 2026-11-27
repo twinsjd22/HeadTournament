@@ -39,11 +39,12 @@ def play_bgm(name):
 
     if current_bgm == name:
         return
+    path, volume = BGM_FILES[name]
     if name not in bgms:
-        path, volume = BGM_FILES[name]
         bgms[name] = load_music(path)
-        bgms[name].set_volume(volume)
     bgms[name].repeat_play()
+    # BGM 볼륨은 BGM마다 따로 저장되지 않고 모든 BGM이 하나의 값을 같이 쓰므로, 틀 때마다 그 BGM의 볼륨으로 다시 맞춤
+    bgms[name].set_volume(volume)
     current_bgm = name
 
 
