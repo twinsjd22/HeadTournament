@@ -54,3 +54,9 @@ def stop_bgm():
     if current_bgm is not None:
         bgms[current_bgm].stop()
         current_bgm = None
+
+
+def pause_bgm():
+    # BGM을 멈춘 자리에서 잠깐 세움 (resume_bgm으로 그 자리부터 이어서 나옴)
+    if current_bgm is not None:
+        bgms[current_bgm].pause()
