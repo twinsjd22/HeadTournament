@@ -1,6 +1,7 @@
 from pico2d import load_image
 
 import game_framework
+import sound
 
 # 골 표시 시간(초): 끝나면 선수와 공이 처음 자리로 돌아감
 GOAL_EFFECT_TIME = 1.2
@@ -24,6 +25,8 @@ class GoalEffect:
 
     def start(self):
         self.time = 0.0
+        # GOAL! 글자가 뜨는 순간 골 함성 (소리가 글자보다 길어서 처음 자리로 돌아간 뒤에도 조금 이어짐)
+        sound.play('goal')
 
     def is_playing(self):
         return self.time is not None
