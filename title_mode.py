@@ -83,12 +83,18 @@ def handle_events():
         elif event.type == SDL_KEYDOWN:
             if event.key == SDLK_ESCAPE:
                 game_framework.quit()
-            elif event.key == SDLK_UP:
-                # 맨 위에서는 더 올라가지 않음
-                selected = max(selected - 1, 0)
-            elif event.key == SDLK_DOWN:
-                selected = min(selected + 1, len(MENUS) - 1)
+            elif event.key in (SDLK_UP, SDLK_DOWN):
+                # 맨 위, 맨 아래에서는 더 움직이지 않음 (실제로 메뉴가 바뀔 때만 소리)
+                before = selected
+                if event.key == SDLK_UP:
+                    selected = max(selected - 1, 0)
+                else:
+                    selected = min(selected + 1, len(MENUS) - 1)
+                if selected != before:
+                    sound.play('select')
             elif event.key in (SDLK_SPACE, SDLK_RETURN):
+                # 메뉴를 고르면 결정 소리
+                sound.play('select')
                 if MENUS[selected] == '게임 시작':
                     # 새 토너먼트를 32강부터 시작
                     tournament.start()
