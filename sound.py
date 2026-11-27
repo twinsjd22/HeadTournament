@@ -60,3 +60,9 @@ def pause_bgm():
     # BGM을 멈춘 자리에서 잠깐 세움 (resume_bgm으로 그 자리부터 이어서 나옴)
     if current_bgm is not None:
         bgms[current_bgm].pause()
+
+
+def resume_bgm():
+    # pause_bgm으로 세운 BGM을 멈춘 자리부터 다시 재생
+    if current_bgm is not None:
+        bgms[current_bgm].resume()
