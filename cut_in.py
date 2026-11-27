@@ -4,6 +4,7 @@ from pico2d import load_image, load_font
 from sdl2.sdlttf import TTF_SizeUTF8
 
 import game_framework
+import sound
 from character_data import CHARACTER_TYPES
 
 # 컷인 전체 시간(초), 띠가 들어오는 시간과 나가는 시간(초)
@@ -41,6 +42,8 @@ class CutIn:
         self.time = 0.0
         self.character = character
         self.side = side
+        # 컷인이 들어오는 순간 필살기 소리 (8종 모두 컷인을 거치므로 여기 한 곳에서 냄)
+        sound.play('skill')
 
     def is_playing(self):
         return self.time is not None
