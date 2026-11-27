@@ -1,4 +1,5 @@
 import game_framework
+import sound
 
 # 경기 시간 (초)
 MATCH_TIME = 60.0
@@ -22,6 +23,9 @@ class Match:
 
         # 시간이 끝났을 때 점수가 다르면 경기 종료 (같으면 골든골로 계속)
         if self.time_left == 0 and self.score_left != self.score_right:
+            # 경기가 막 끝난 순간 휘슬 (골든골이면 GOAL! 표시 동안에도 update가 불리므로 처음 한 번만)
+            if not self.over:
+                sound.play('whistle')
             self.over = True
             if self.score_left > self.score_right:
                 print(f'경기 종료 : 승리 {self.score_left} : {self.score_right}')
